@@ -1,0 +1,126 @@
+"""FastAPI surface: score a transaction, generate an evidence packet for
+a dispute, inspect an audit record, and read the last training metrics.
+Run: uvicorn src.api:app --reload
+"""
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import pandas as pd
+from fastapi import FastAPI, HTTPException
+
+from src.audit import get_event, log_event
+from src.data_gen import generate as generate_data
+from src.data_gen import generate_evidence_store
+from src.evidence_engine import build_packet
+from src.model import RiskModel
+from src.schemas import Dispute, EvidencePacket, RiskScore, Transaction
+
+app = FastAPI(title="Chargeback Shield", version="0.1.0")
+
+REPORTS_DIR = Path(__file__).resolve().parent.parent / "reports"
+
+_model: RiskModel | None = None
+_evidence_store_cache: dict | None = None
+
+
+def get_model() -> RiskModel:
+    global _model
+    if _model is None:
+        _model = RiskModel()
+    return _model
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
+@app.post("/score", response_model=RiskScore)
+def score(transaction: Transaction):
+    row = pd.DataFrame(
+        [
+            {
+                "amount": transaction.amount,
+                "ticket_size_ratio": (
+                    transaction.amount / transaction.customer_avg_amount_90d
+                    if transaction.customer_avg_amount_90d
+                    else 1.0
+                ),
+                "customer_txn_count_90d": transaction.customer_txn_count_90d,
+                "customer_dispute_count_lifetime": transaction.customer_dispute_count_lifetime,
+                "customer_refund_count_90d": transaction.customer_refund_count_90d,
+                "is_subscription": transaction.is_subscription,
+                "category": transaction.category.value,
+                "delivery_confirmed": transaction.delivery_confirmed,
+                "cross_border": transaction.ip_country != transaction.billing_country,
+                "hour_of_day": transaction.timestamp.hour,
+                "days_to_deliver": transaction.days_to_deliver or 0.0,
+            }
+        ]
+    )
+    try:
+        model = get_model()
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=503,
+            detail="Model not trained yet. Run `python -m scripts.train` first.",
+        )
+
+    prob, band = model.score(row)
+    result = RiskScore(
+        transaction_id=transaction.transaction_id,
+        dispute_probability=round(prob, 4),
+        risk_band=band,
+        model_version=model.clf.__class__.__name__,
+    )
+    log_event(
+        audit_id=f"score-{transaction.transaction_id}",
+        event_type="risk_score",
+        subject_id=transaction.transaction_id,
+        payload=result.model_dump(),
+    )
+    return result
+
+
+@app.post("/disputes/packet", response_model=EvidencePacket)
+def dispute_packet(dispute: Dispute):
+    """Build an evidence packet for a filed dispute.
+
+    Demo convenience: looks up a simulated evidence store from the synthetic
+    dataset if this transaction_id happens to be in it, so the endpoint is
+    demoable standalone. A real deployment would call an evidence-retrieval
+    service here instead -- the policy logic in evidence_engine.py doesn't
+    change either way.
+    """
+    global _evidence_store_cache
+    if _evidence_store_cache is None:
+        df = generate_data()
+        _evidence_store_cache = generate_evidence_store(df)
+    store = _evidence_store_cache.get(dispute.transaction_id, {})
+
+    packet = build_packet(dispute, dispute.transaction_id, store)
+    log_event(
+        audit_id=packet.audit_id,
+        event_type="evidence_packet",
+        subject_id=dispute.dispute_id,
+        payload=packet.model_dump(),
+    )
+    return packet
+
+
+@app.get("/audit/{audit_id}")
+def audit(audit_id: str):
+    event = get_event(audit_id)
+    if event is None:
+        raise HTTPException(status_code=404, detail="No audit record with that id.")
+    return event
+
+
+@app.get("/metrics")
+def metrics():
+    path = REPORTS_DIR / "metrics.json"
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="No metrics yet. Run `python -m scripts.train` first.")
+    return json.loads(path.read_text())
