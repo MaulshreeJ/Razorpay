@@ -19,7 +19,7 @@ import pandas as pd
 RNG_SEED = 42
 N_CUSTOMERS = 400
 N_MERCHANTS = 60
-N_TRANSACTIONS = 6000
+N_TRANSACTIONS = 20000  # bumped from 6000: more positive examples (~1900 vs ~570) for the model to learn from
 
 REASON_CODES = [
     "PRODUCT_NOT_RECEIVED",

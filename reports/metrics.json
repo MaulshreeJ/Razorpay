@@ -1,47 +1,54 @@
 {
   "model_version": "v1-histgb",
-  "test_set_size": 1200,
-  "dispute_rate_test_set": 0.095,
-  "operating_threshold": 0.5774309746162838,
-  "precision": 0.75,
-  "recall": 0.07894736842105263,
-  "pr_auc": 0.34099136837151167,
-  "roc_auc": 0.7436512552098478,
+  "test_set_size": 4000,
+  "dispute_rate_test_set": 0.09425,
+  "operating_threshold": 0.2455828114698364,
+  "precision": 0.4,
+  "recall": 0.3183023872679045,
+  "pr_auc": 0.3694701089606443,
+  "roc_auc": 0.7837903433047484,
   "confusion_matrix": [
     [
-      1083,
-      3
+      3443,
+      180
     ],
     [
-      105,
-      9
+      257,
+      120
     ]
   ],
-  "note": "Computed on a held-out test split (not seen during training). All data is synthetic -- see src/data_gen.py.",
+  "note": "Computed on a held-out test split never used for training or hyperparameter selection (those used a separate validation fold). All data is synthetic -- see src/data_gen.py.",
   "operating_points": [
     {
       "recall_floor": 0.2,
-      "achieved_recall": 0.211,
-      "precision": 0.511,
-      "threshold": 0.3527
+      "achieved_recall": 0.212,
+      "precision": 0.482,
+      "threshold": 0.3578
     },
     {
       "recall_floor": 0.4,
-      "achieved_recall": 0.43,
-      "precision": 0.327,
-      "threshold": 0.1614
+      "achieved_recall": 0.401,
+      "precision": 0.371,
+      "threshold": 0.2069
     },
     {
       "recall_floor": 0.6,
-      "achieved_recall": 0.632,
-      "precision": 0.229,
-      "threshold": 0.0828
+      "achieved_recall": 0.602,
+      "precision": 0.293,
+      "threshold": 0.1434
     },
     {
       "recall_floor": 0.8,
-      "achieved_recall": 0.807,
-      "precision": 0.138,
-      "threshold": 0.0385
+      "achieved_recall": 0.801,
+      "precision": 0.186,
+      "threshold": 0.0554
     }
-  ]
+  ],
+  "target_precision_used": 0.4,
+  "selected_hyperparameters": {
+    "learning_rate": 0.03,
+    "max_depth": 4,
+    "l2_regularization": 1.0,
+    "max_iter": 300
+  }
 }

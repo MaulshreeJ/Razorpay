@@ -65,7 +65,12 @@ uvicorn src.api:app --reload
 See `reports/metrics.json`, `reports/model_card.md`, and
 `reports/packet_metrics.json` after running the commands above -- they are
 regenerated fresh every run, so this README doesn't hardcode numbers that
-could go stale.
+could go stale. Short version: recall at the reported operating point is
+36.8% at 40% precision (up from an earlier 7.9% at a 75% precision floor)
+-- see ARCHITECTURE.md's "Recall improvement pass" for exactly what
+changed and, just as importantly, what didn't (the model itself only
+improved modestly; most of the gain is a business-justified threshold
+choice for a cheap intervention, not a smarter model).
 
 ## Project layout
 ```

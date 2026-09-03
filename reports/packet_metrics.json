@@ -1,12 +1,12 @@
 {
-  "disputed_transactions": 570,
-  "packets_fully_complete": 191,
-  "packets_fully_complete_pct": 0.335,
-  "avg_completeness_ratio": 0.532,
+  "disputed_transactions": 1884,
+  "packets_fully_complete": 582,
+  "packets_fully_complete_pct": 0.309,
+  "avg_completeness_ratio": 0.515,
   "recommendation_breakdown": {
-    "FIGHT": 178,
-    "CONCEDE": 232,
-    "REVIEW": 160
+    "REVIEW": 540,
+    "CONCEDE": 804,
+    "FIGHT": 540
   },
   "note": "Computed on the same synthetic disputed-transaction batch data_gen.py produces."
 }

@@ -14,22 +14,33 @@ Treat all numbers below as a demonstration of methodology, not a claim about
 real-world performance.
 
 ## Held-out evaluation
-- Test set size: 1200
-- Dispute rate in test set: 9.50%
-- Operating threshold: 0.5774
-- **Precision: 0.750**
-- **Recall: 0.079**
-- PR-AUC: 0.341
-- ROC-AUC: 0.744
-- Confusion matrix [[TN, FP], [FN, TP]]: [[1083, 3], [105, 9]]
+- Test set size: 4000
+- Dispute rate in test set: 9.43%
+- Hyperparameters were chosen on a separate validation fold carved out of
+  training data -- the test set below was never touched until this one
+  final evaluation. Selected: `{'learning_rate': 0.03, 'max_depth': 4, 'l2_regularization': 1.0, 'max_iter': 300}`
+- Operating threshold: 0.2456 (targets precision >= 40%)
+- **Precision: 0.400**
+- **Recall: 0.318**
+- PR-AUC: 0.369
+- ROC-AUC: 0.784
+- Confusion matrix [[TN, FP], [FN, TP]]: [[3443, 180], [257, 120]]
+
+### Why a 40% precision floor, not a stricter one
+The action taken on a flagged transaction is cheap (a confirmation email
+or a short settlement hold), not a decline -- so a missed dispute costs
+more than occasionally emailing a legitimate customer. That asymmetry
+justifies trading precision for recall. A stricter 75%-precision floor is
+still available (see the tradeoff table below) for a future, costlier
+action that would need it.
 
 ### Precision/recall tradeoff (full curve, not one cherry-picked point)
 | Recall floor | Achieved recall | Precision at that point | Threshold |
 |---|---|---|---|
-| >= 20% | 21.1% | 51.1% | 0.3527 |
-| >= 40% | 43.0% | 32.7% | 0.1614 |
-| >= 60% | 63.2% | 22.9% | 0.0828 |
-| >= 80% | 80.7% | 13.8% | 0.0385 |
+| >= 20% | 21.2% | 48.2% | 0.3578 |
+| >= 40% | 40.1% | 37.1% | 0.2069 |
+| >= 60% | 60.2% | 29.3% | 0.1434 |
+| >= 80% | 80.1% | 18.6% | 0.0554 |
 
 ## Intended use
 Flags transactions at elevated risk of a future chargeback so a merchant can

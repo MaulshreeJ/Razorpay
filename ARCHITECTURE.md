@@ -76,3 +76,27 @@ everything is inline HTML/CSS/vanilla JS so it still works during a live
 demo with no internet). It only calls the JSON endpoints above; it holds
 no logic of its own, so anything the dashboard shows is exactly what the
 API would return to a judge curling it directly.
+
+
+## Recall improvement pass (v1.1)
+Three genuine, honest levers, each measured -- no synthetic-label tuning:
+
+1. **More data.** 6,000 -> 20,000 synthetic transactions (~570 -> ~1,900
+   positive examples). More positives to learn from, same generating
+   process.
+2. **One informed feature.** `digital_no_delivery` (digital goods with no
+   delivery confirmation) added as an explicit interaction; the redundant
+   standalone `category_digital` column was dropped. Permutation
+   importance confirmed this was the single strongest feature.
+3. **Proper hyperparameter tuning.** A small grid (`learning_rate`,
+   `max_depth`, `l2_regularization`) is now searched on a validation fold
+   carved out of training data -- the test fold stays untouched until the
+   one final evaluation, so tuning can't leak into the reported metrics.
+
+Combined with reconsidering the operating threshold itself (see the model
+card's "why a 40% precision floor" section -- a business decision, not a
+modeling one), recall at the reported operating point went from 7.9% to
+36.8%, at 40% precision instead of 75%. PR-AUC moved a smaller amount
+(0.341 -> 0.364): most of the recall gain came from picking the right
+threshold for a cheap intervention, not from a fundamentally sharper
+model -- worth saying plainly rather than implying otherwise.

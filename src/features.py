@@ -14,11 +14,11 @@ FEATURE_COLUMNS = [
     "customer_dispute_count_lifetime",
     "customer_refund_count_90d",
     "is_subscription",
-    "category_digital",
     "delivery_confirmed",
     "cross_border",
     "hour_of_day",
     "days_to_deliver",
+    "digital_no_delivery",
 ]
 
 
@@ -30,10 +30,14 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
     out["customer_dispute_count_lifetime"] = df["customer_dispute_count_lifetime"].astype(float)
     out["customer_refund_count_90d"] = df["customer_refund_count_90d"].astype(float)
     out["is_subscription"] = df["is_subscription"].astype(int)
-    out["category_digital"] = (df["category"] == "digital").astype(int)
     out["delivery_confirmed"] = df["delivery_confirmed"].astype(int)
     out["cross_border"] = df["cross_border"].astype(int)
     out["hour_of_day"] = df["hour_of_day"].astype(float)
     days = df["days_to_deliver"].astype(float)
     out["days_to_deliver"] = days.replace(0.0, np.nan)
+    # Explicit interaction: digital goods with no delivery confirmation is
+    # the single strongest correlate in this dataset (confirmed by
+    # permutation importance during tuning) -- naming it directly gives a
+    # depth-limited tree a cheaper path to it than re-deriving the AND.
+    out["digital_no_delivery"] = ((df["category"] == "digital") & (~df["delivery_confirmed"].astype(bool))).astype(int)
     return out[FEATURE_COLUMNS]

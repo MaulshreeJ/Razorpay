@@ -34,12 +34,23 @@ real-world performance.
 ## Held-out evaluation
 - Test set size: {test_set_size}
 - Dispute rate in test set: {dispute_rate_test_set:.2%}
-- Operating threshold: {operating_threshold:.4f}
+- Hyperparameters were chosen on a separate validation fold carved out of
+  training data -- the test set below was never touched until this one
+  final evaluation. Selected: `{selected_hyperparameters}`
+- Operating threshold: {operating_threshold:.4f} (targets precision >= {target_precision_used:.0%})
 - **Precision: {precision:.3f}**
 - **Recall: {recall:.3f}**
 - PR-AUC: {pr_auc:.3f}
 - ROC-AUC: {roc_auc:.3f}
 - Confusion matrix [[TN, FP], [FN, TP]]: {confusion_matrix}
+
+### Why a {target_precision_used:.0%} precision floor, not a stricter one
+The action taken on a flagged transaction is cheap (a confirmation email
+or a short settlement hold), not a decline -- so a missed dispute costs
+more than occasionally emailing a legitimate customer. That asymmetry
+justifies trading precision for recall. A stricter 75%-precision floor is
+still available (see the tradeoff table below) for a future, costlier
+action that would need it.
 
 ### Precision/recall tradeoff (full curve, not one cherry-picked point)
 | Recall floor | Achieved recall | Precision at that point | Threshold |
