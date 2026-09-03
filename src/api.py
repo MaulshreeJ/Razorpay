@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pandas as pd
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse
 
 from src.audit import get_event, log_event
 from src.data_gen import generate as generate_data
@@ -20,9 +21,22 @@ from src.schemas import Dispute, EvidencePacket, RiskScore, Transaction
 app = FastAPI(title="Chargeback Shield", version="0.1.0")
 
 REPORTS_DIR = Path(__file__).resolve().parent.parent / "reports"
+DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "transactions.csv"
+DASHBOARD_PATH = Path(__file__).resolve().parent / "static" / "dashboard.html"
 
 _model: RiskModel | None = None
 _evidence_store_cache: dict | None = None
+_dataset_cache: pd.DataFrame | None = None
+
+
+def get_dataset() -> pd.DataFrame:
+    global _dataset_cache
+    if _dataset_cache is None:
+        if DATA_PATH.exists():
+            _dataset_cache = pd.read_csv(DATA_PATH, parse_dates=["timestamp"])
+        else:
+            _dataset_cache = generate_data()
+    return _dataset_cache
 
 
 def get_model() -> RiskModel:
@@ -32,9 +46,47 @@ def get_model() -> RiskModel:
     return _model
 
 
+@app.get("/", response_class=HTMLResponse)
+def dashboard():
+    if not DASHBOARD_PATH.exists():
+        raise HTTPException(status_code=404, detail="Dashboard not found.")
+    return DASHBOARD_PATH.read_text()
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/sample-disputes")
+def sample_disputes(limit: int = 15):
+    """A handful of real (synthetic) disputed transactions, for the
+    dashboard's evidence-packet demo dropdown -- so a viewer can generate
+    a packet without hand-typing a transaction_id and reason code.
+    """
+    df = get_dataset()
+    disputed = df[df["disputed"] == True]  # noqa: E712
+    sample = disputed.sample(n=min(limit, len(disputed)), random_state=1) if len(disputed) else disputed
+    return [
+        {
+            "transaction_id": row["transaction_id"],
+            "reason_code": row["reason_code"],
+            "amount": float(row["amount"]),
+            "category": row["category"],
+        }
+        for _, row in sample.iterrows()
+    ]
+
+
+@app.get("/packet-metrics")
+def packet_metrics():
+    path = REPORTS_DIR / "packet_metrics.json"
+    if not path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="No packet metrics yet. Run `python -m scripts.evaluate_packets` first.",
+        )
+    return json.loads(path.read_text())
 
 
 @app.post("/score", response_model=RiskScore)

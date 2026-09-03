@@ -49,9 +49,16 @@ python -m scripts.evaluate_packets
 # 3. Run the test suite
 pytest -q
 
-# 4. Run the API
+# 4. Run the API + dashboard
 uvicorn src.api:app --reload
-# then: POST /score, POST /disputes/packet, GET /audit/{id}, GET /metrics
+# open http://127.0.0.1:8000/  -- a live dashboard: model metrics, the
+# precision/recall tradeoff table, the evidence-packet engine's batch
+# results, and interactive forms to score a transaction, generate an
+# evidence packet for a sample dispute, and look up its audit record.
+#
+# Raw JSON API, if you'd rather script against it directly:
+# POST /score, POST /disputes/packet, GET /audit/{id}, GET /metrics,
+# GET /packet-metrics, GET /sample-disputes
 ```
 
 ## Current results (synthetic, held-out test set)

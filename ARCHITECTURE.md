@@ -64,3 +64,11 @@ results honestly -- see `reports/model_card.md` after running
   that swap doesn't require touching `evidence_engine.py` or `api.py`.
 - Add rate limiting and idempotency keys to `/disputes/packet` so a retried
   request can't double-log an audit event.
+
+## Dashboard
+`src/static/dashboard.html`, served at `/` by the same FastAPI app (no
+separate frontend process, no build step, no external network calls --
+everything is inline HTML/CSS/vanilla JS so it still works during a live
+demo with no internet). It only calls the JSON endpoints above; it holds
+no logic of its own, so anything the dashboard shows is exactly what the
+API would return to a judge curling it directly.
