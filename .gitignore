@@ -8,3 +8,4 @@ reports/*.db
 reports/*.jsonl
 reports/model.joblib
 reports/thresholds.json
+.env

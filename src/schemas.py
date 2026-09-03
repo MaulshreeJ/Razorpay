@@ -89,4 +89,5 @@ class EvidencePacket(BaseModel):
     recommendation: Recommendation
     confidence: float
     rationale: str
+    narrative: Optional[str] = None
     generated_at: datetime

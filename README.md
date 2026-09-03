@@ -84,13 +84,29 @@ tests/                 pytest suite for the model and the policy engine
 reports/               generated: model.joblib, metrics.json, model_card.md, audit.db
 ```
 
+## Optional LLM narrative layer
+`src/narrative.py` can draft a 2-3 sentence human-readable summary of a
+dispute packet via the Gemini API, purely as decoration on top of
+`evidence_engine`'s decision -- it cannot change the recommendation,
+invent evidence, or alter completeness/confidence. Configure it via a
+local `.env` (see `.env.example`; **never commit `.env`**):
+```
+GEMINI_API_KEY=your-key-here
+GEMINI_MODEL=gemini-2.0-flash   # override if this model name changes
+```
+If the key is missing, the network call fails, or the model name is
+wrong, `draft_narrative()` returns `None` and the API falls back to the
+deterministic `rationale` string -- the packet is always complete and
+usable with or without this layer. (Verified: this exact fallback path is
+what ran during development, since the sandboxed dev environment's egress
+policy blocked `generativelanguage.googleapis.com` outright -- so the
+narrative field returned `null` while `rationale`, `recommendation`, and
+everything else still worked correctly. Test on your own machine, where
+normal internet access should let the real call through.)
+
 ## Roadmap (not built in v1, on purpose)
 - Real evidence-retrieval integration (currently simulated) in place of the
   synthetic evidence store.
-- An optional LLM layer purely to draft the packet's human-readable
-  narrative from the retrieved evidence -- it would never be allowed to
-  decide fight/concede or add evidence the retrieval layer didn't return.
-- A small dashboard UI over the existing API.
 
 ## Pitch outline (for the 5-minute video)
 1. The business lever: chargeback ratio drives real card-network compliance

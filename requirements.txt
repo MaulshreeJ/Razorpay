@@ -7,3 +7,5 @@ uvicorn[standard]
 pydantic>=2
 pytest
 httpx
+requests
+python-dotenv

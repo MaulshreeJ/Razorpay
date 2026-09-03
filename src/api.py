@@ -8,14 +8,18 @@ import json
 from pathlib import Path
 
 import pandas as pd
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
+
+load_dotenv()  # picks up GEMINI_API_KEY / GEMINI_MODEL from .env if present
 
 from src.audit import get_event, log_event
 from src.data_gen import generate as generate_data
 from src.data_gen import generate_evidence_store
 from src.evidence_engine import build_packet
 from src.model import RiskModel
+from src.narrative import draft_narrative
 from src.schemas import Dispute, EvidencePacket, RiskScore, Transaction
 
 app = FastAPI(title="Chargeback Shield", version="0.1.0")
@@ -153,6 +157,13 @@ def dispute_packet(dispute: Dispute):
     store = _evidence_store_cache.get(dispute.transaction_id, {})
 
     packet = build_packet(dispute, dispute.transaction_id, store)
+
+    # Optional cosmetic layer: an LLM may phrase the case for a human
+    # reader, but it never touches recommendation/completeness/confidence,
+    # and if it's unavailable for any reason the packet is still complete
+    # and usable with just `rationale`.
+    packet.narrative = draft_narrative(packet)
+
     log_event(
         audit_id=packet.audit_id,
         event_type="evidence_packet",

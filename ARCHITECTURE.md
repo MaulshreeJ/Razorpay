@@ -30,8 +30,12 @@ catch on the merchant side. So the split is intentional:
   (amount floor, completeness bands) -- anyone can read the function and
   know exactly why a given dispute was recommended FIGHT, CONCEDE, or
   REVIEW, and reproduce that decision by hand.
-- An LLM narrative layer is listed as roadmap, not built, because it adds
-  demo polish without changing the actual decision -- and this system's
+- `src/narrative.py` implements this LLM layer (Gemini API): it receives
+  only the already-decided recommendation, the evidence present/absent
+  lists, and the deterministic rationale, and is explicitly instructed not
+  to change the recommendation or invent facts. `EvidencePacket.narrative`
+  is `None` whenever the call is unavailable for any reason -- the caller
+  always has `rationale` as a complete, correct fallback. This system's
   claim to trust rests on the decision being deterministic, not on
   smoother prose.
 

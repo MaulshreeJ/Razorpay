@@ -152,7 +152,8 @@
       <div class="result" id="packetResult">
         <p><span class="pill" id="recPill">—</span> <span class="rationale" id="completenessText"></span></p>
         <ul class="ev-list" id="evList"></ul>
-        <p class="rationale" id="rationaleText"></p>
+        <p class="rationale"><strong>Policy rationale (authoritative):</strong> <span id="rationaleText"></span></p>
+        <p class="rationale" id="narrativeBlock" style="display:none;"><strong>AI-drafted summary (cosmetic only):</strong> <span id="narrativeText"></span></p>
         <p class="row-inline"><span class="rationale">audit id:</span> <code id="auditIdOut"></code>
           <button class="secondary" onclick="copyAuditId(event)">Use in audit lookup ↓</button></p>
       </div>
@@ -303,6 +304,12 @@ async function submitPacket(e){
     <li class="${ev.present ? 'present' : 'missing'}"><span class="mark">${ev.present ? '✓' : '✗'}</span> ${ev.type.replace(/_/g,' ')}</li>
   `).join('');
   $('#rationaleText').textContent = p.rationale;
+  if(p.narrative){
+    $('#narrativeBlock').style.display = 'block';
+    $('#narrativeText').textContent = p.narrative;
+  } else {
+    $('#narrativeBlock').style.display = 'none';
+  }
   $('#auditIdOut').textContent = p.audit_id;
 }
 
