@@ -10,6 +10,7 @@ from pathlib import Path
 import pandas as pd
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 
 load_dotenv()  # picks up GEMINI_API_KEY / GEMINI_MODEL from .env if present
@@ -23,6 +24,18 @@ from src.narrative import draft_narrative
 from src.schemas import Dispute, EvidencePacket, RiskScore, Transaction
 
 app = FastAPI(title="Chargeback Shield", version="0.1.0")
+
+# allow_origins=["*"] + allow_credentials=True is an invalid combination
+# per the CORS spec (browsers won't send credentials to a wildcard
+# origin) -- this API uses no cookies/auth, so credentials stay off and
+# the wildcard origin is safe for local demo/grading use.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 REPORTS_DIR = Path(__file__).resolve().parent.parent / "reports"
 DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "transactions.csv"
@@ -187,3 +200,9 @@ def metrics():
     if not path.exists():
         raise HTTPException(status_code=404, detail="No metrics yet. Run `python -m scripts.train` first.")
     return json.loads(path.read_text())
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("src.api:app", host="127.0.0.1", port=8000, reload=True)
+
