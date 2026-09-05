@@ -65,6 +65,30 @@ A naive rule using only the single strongest feature: **{baseline_rule}**
 Reported so the model's value over the obvious one-line rule is checkable,
 not asserted.
 
+### Cost-based alternative operating point
+Instead of targeting a precision floor, this asks a different question:
+"which threshold minimizes total assumed cost?" Assumed unit costs: a false
+positive costs {cost_fp_assumed:.2f} (an automated confirmation email or a
+short settlement hold); a false negative costs the full disputed amount
+(the conservative case -- no recovery assumed). These are placeholders, not
+measured -- swap in real support/ops cost if you have it.
+
+| | Threshold | Precision | Recall | Expected cost on test fold |
+|---|---|---|---|---|
+| Cost-optimal | {cost_threshold:.4f} | {cost_precision:.3f} | {cost_recall:.3f} | {cost_expected:,.2f} |
+| Shipped (precision-floor) threshold | {operating_threshold:.4f} | {precision:.3f} | {recall:.3f} | {cost_at_shipped:,.2f} |
+| Never flag anything | -- | -- | -- | {cost_never_flag:,.2f} |
+
+At this assumed false-positive cost, the cost-optimal policy flags nearly
+every transaction (recall near 100%) -- because when intervention is this
+cheap, over-flagging barely matters under a literal expected-cost
+minimization. That is not a bug in the calculation; it is exactly why the
+shipped default above uses a precision floor instead of this cost model:
+the precision-floor choice is robust to the false-positive-cost assumption
+being wrong, where the cost-optimal threshold is not. Both are reported so
+that tradeoff -- provably cost-minimizing under an assumption, versus
+robust to that assumption being wrong -- is visible, not asserted.
+
 ## Intended use
 Flags transactions at elevated risk of a future chargeback so a merchant can
 take a cheap preventive action (confirmation email, short settlement hold)
@@ -77,6 +101,11 @@ autonomous block/allow gate.
   pre-dispute risk. The separate evidence engine (src/evidence_engine.py)
   handles what happens *after* a dispute is filed.
 - No demographic or protected-attribute features are used.
+- The merchant-level dispute-rate feature (merchant_dispute_rate_90d) uses
+  an invented per-merchant heterogeneity term (see ARCHITECTURE.md,
+  "Merchant-level risk pooling") -- real merchant risk clustering exists
+  and is well documented, but this specific spread across merchants was
+  chosen to be plausible, not measured from real data.
 """
 
 
@@ -105,6 +134,13 @@ def main():
                 baseline_rule=metrics["baseline"]["rule"],
                 baseline_precision=metrics["baseline"]["precision"],
                 baseline_recall=metrics["baseline"]["recall"],
+                cost_fp_assumed=metrics["cost_based_operating_point"]["assumed_false_positive_cost"],
+                cost_threshold=metrics["cost_based_operating_point"]["threshold"],
+                cost_precision=metrics["cost_based_operating_point"]["precision"],
+                cost_recall=metrics["cost_based_operating_point"]["recall"],
+                cost_expected=metrics["cost_based_operating_point"]["expected_cost_on_test_fold"],
+                cost_at_shipped=metrics["cost_based_operating_point"]["expected_cost_at_shipped_threshold"],
+                cost_never_flag=metrics["cost_based_operating_point"]["expected_cost_if_never_flagging"],
                 **metrics,
             )
         )

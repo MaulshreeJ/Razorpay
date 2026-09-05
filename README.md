@@ -15,8 +15,8 @@ Chargeback Shield does two things, deliberately kept separate:
    review under a fixed, auditable policy -- never an LLM guess.
 
 Every score and every packet decision is written to an append-only audit
-log (`reports/audit.db`), so any single decision can be inspected after the
-fact.
+log (`reports/audit_log.jsonl`), so any single decision can be inspected
+after the fact.
 
 ## Why this and not generic fraud detection
 Pre-authorization transaction-fraud scoring is a crowded lane (see
@@ -48,19 +48,34 @@ python -m scripts.train
 # 2. Evaluate the evidence-packet engine over the same synthetic disputes
 python -m scripts.evaluate_packets
 
-# 3. Run the test suite
+# 3. Build the merchant-level dispute-ratio rollup
+python -m scripts.merchant_rollup
+
+# 4. Run the test suite
 pytest -q
 
-# 4. Run the API + dashboard
+# 5. Run the API + dashboard
 uvicorn src.api:app --reload
 # open http://127.0.0.1:8000/  -- a live dashboard: model metrics, the
 # precision/recall tradeoff table, the evidence-packet engine's batch
-# results, and interactive forms to score a transaction, generate an
-# evidence packet for a sample dispute, and look up its audit record.
+# results, the merchant risk rollup, and interactive forms to score a
+# transaction, generate an evidence packet for a sample dispute, and look
+# up its audit record.
 #
 # Raw JSON API, if you'd rather script against it directly:
 # POST /score, POST /disputes/packet, GET /audit/{id}, GET /metrics,
-# GET /packet-metrics, GET /sample-disputes
+# GET /packet-metrics, GET /sample-disputes, GET /merchants/rollup
+```
+
+## Docker
+```bash
+docker build -t chargeback-shield .
+docker run -p 8000:8000 chargeback-shield
+# open http://127.0.0.1:8000/ -- the model and all reports are trained/
+# generated at build time (100% synthetic data, no secrets needed), so the
+# container starts up instantly. The optional Gemini narrative layer still
+# reads GEMINI_API_KEY from the environment at *runtime* if you want it:
+# docker run -p 8000:8000 --env-file .env chargeback-shield
 ```
 
 ## Explainability
@@ -70,18 +85,30 @@ one where a feature is swapped for its typical training-set value). No
 extra dependency, and it's shown live on the dashboard under "Why". The
 model card also reports a naive one-rule baseline next to the trained
 model's numbers, so the model's actual lift is checkable rather than
-asserted.
+asserted. The model card also reports a **cost-based alternative operating
+point** (see ARCHITECTURE.md) -- what threshold minimizes total assumed
+cost instead of targeting a precision floor -- and is explicit about why
+the shipped default doesn't just use that number instead.
+
+## Merchant risk rollup
+`GET /merchants/rollup` (dashboard section 6) surfaces which merchants are
+chronically high-risk, computed over full merchant history -- distinct
+from the leakage-safe `merchant_dispute_rate_90d` feature the model
+actually trains on (which only ever sees a merchant's history up to that
+point in time; see ARCHITECTURE.md's "Merchant-level risk pooling" for the
+honest caveat on how that feature's signal was introduced).
 
 ## Current results (synthetic, held-out test set)
 See `reports/metrics.json`, `reports/model_card.md`, and
 `reports/packet_metrics.json` after running the commands above -- they are
 regenerated fresh every run, so this README doesn't hardcode numbers that
 could go stale. Short version: recall at the reported operating point is
-36.8% at 40% precision (up from an earlier 7.9% at a 75% precision floor)
--- see ARCHITECTURE.md's "Recall improvement pass" for exactly what
-changed and, just as importantly, what didn't (the model itself only
-improved modestly; most of the gain is a business-justified threshold
-choice for a cheap intervention, not a smarter model).
+around 40% at 40% precision (up from an earlier 7.9% at a 75% precision
+floor) -- see ARCHITECTURE.md's "Recall improvement pass" and
+"Merchant-level risk pooling" sections for exactly what changed and, just
+as importantly, what didn't (part of each gain is a business-justified
+threshold choice or a newly-introduced signal, not simply "a smarter
+model" -- said plainly rather than implied otherwise).
 
 ## Project layout
 ```
@@ -91,13 +118,15 @@ src/
   features.py          shared feature engineering (training + live API)
   model.py             HistGradientBoosting risk model, train() + RiskModel
   evidence_engine.py   reason-code -> evidence map, deterministic fight/concede/review policy
-  audit.py             append-only SQLite audit trail
+  audit.py             append-only JSONL audit trail
   api.py               FastAPI surface
 scripts/
   train.py             generate data (if needed) -> train -> metrics.json + model_card.md
   evaluate_packets.py  evidence-engine batch evaluation -> packet_metrics.json
+  merchant_rollup.py   merchant-level dispute-ratio rollup -> merchant_rollup.json
 tests/                 pytest suite for the model and the policy engine
-reports/               generated: model.joblib, metrics.json, model_card.md, audit.db
+reports/               generated: model.joblib, metrics.json, model_card.md,
+                       packet_metrics.json, merchant_rollup.json, audit_log.jsonl
 ```
 
 ## Optional LLM narrative layer

@@ -52,6 +52,44 @@ HYPERPARAM_GRID = [
 # instead; both are reported in metrics.json so either can be adopted.
 DEFAULT_TARGET_PRECISION = 0.4
 
+# --- Cost-based (expected-value) thresholding -----------------------------
+# The target-precision threshold above is a business proxy: "keep precision
+# at least X%". An alternative, more direct framing skips precision/recall
+# entirely and asks "which threshold minimizes total expected cost?" given
+# assumed unit costs. Reported below as an ADDITIONAL operating point --
+# not a silent replacement of the shipped default -- so both philosophies
+# are visible and comparable.
+#
+# ASSUMED_FP_COST: the action on a flagged transaction is cheap (an
+# automated confirmation email or a short settlement hold) -- assumed here
+# as a flat 5 (same currency units as `amount`), independent of transaction
+# size. This is a placeholder, not measured; swap in real support/ops cost
+# if you have it.
+#
+# The false-negative cost is NOT flat -- a missed dispute is assumed to
+# cost the full disputed amount (the conservative case: no recovery), so
+# it scales with each transaction's own `amount`.
+ASSUMED_FP_COST = 5.0
+
+
+def _select_threshold_by_cost(y_val, probs, amounts, fp_cost: float = ASSUMED_FP_COST):
+    """Returns (threshold, expected_cost) minimizing
+    fp_cost * false_positives + amount_lost_on_false_negatives, evaluated
+    at every distinct predicted probability in the validation/test fold.
+    """
+    y_val = np.asarray(y_val)
+    amounts = np.asarray(amounts, dtype=float)
+    candidate_thresholds = np.unique(np.concatenate([probs, [0.0, 1.0]]))
+    best_threshold, best_cost = 0.5, float("inf")
+    for t in candidate_thresholds:
+        preds = (probs >= t).astype(int)
+        false_negatives = (y_val == 1) & (preds == 0)
+        false_positives = (y_val == 0) & (preds == 1)
+        cost = float(amounts[false_negatives].sum() + fp_cost * false_positives.sum())
+        if cost < best_cost:
+            best_cost, best_threshold = cost, float(t)
+    return best_threshold, best_cost
+
 
 def _select_threshold(y_val, probs, target_precision: float):
     prec, rec, thr = precision_recall_curve(y_val, probs)
@@ -108,6 +146,33 @@ def train(df: pd.DataFrame, test_size: float = 0.2, seed: int = 42, target_preci
                 }
             )
 
+    # Cost-based alternative operating point (see _select_threshold_by_cost's
+    # docstring for the cost assumptions). Computed on the same held-out
+    # test fold as everything above -- reported for comparison, never
+    # substituted for the shipped target-precision threshold.
+    cost_threshold, cost_expected = _select_threshold_by_cost(y_test, probs, X_test["amount"])
+    cost_preds = (probs >= cost_threshold).astype(int)
+    y_test_arr = np.asarray(y_test)
+    amounts_arr = np.asarray(X_test["amount"], dtype=float)
+    shipped_preds_for_cost = (probs >= operating_threshold).astype(int)
+    shipped_fn = (y_test_arr == 1) & (shipped_preds_for_cost == 0)
+    shipped_fp = (y_test_arr == 0) & (shipped_preds_for_cost == 1)
+    shipped_expected_cost = float(amounts_arr[shipped_fn].sum() + ASSUMED_FP_COST * shipped_fp.sum())
+    never_flag_cost = float(amounts_arr[y_test_arr == 1].sum())
+    cost_based_operating_point = {
+        "assumed_false_positive_cost": ASSUMED_FP_COST,
+        "assumed_false_negative_cost": "full disputed amount (conservative: no recovery assumed)",
+        "threshold": round(cost_threshold, 4),
+        "precision": round(float(precision_score(y_test, cost_preds, zero_division=0)), 3),
+        "recall": round(float(recall_score(y_test, cost_preds, zero_division=0)), 3),
+        "expected_cost_on_test_fold": round(cost_expected, 2),
+        "expected_cost_at_shipped_threshold": round(shipped_expected_cost, 2),
+        "expected_cost_if_never_flagging": round(never_flag_cost, 2),
+        "note": "An alternative operating point that minimizes total assumed cost "
+                "directly, instead of targeting a precision floor. Not the shipped "
+                "default -- see operating_threshold above for what the API actually uses.",
+    }
+
     # Naive baseline for comparison: flag on the single strongest feature
     # alone (confirmed by permutation importance during tuning). If the
     # trained model can't clearly beat this, that's worth knowing --
@@ -144,6 +209,7 @@ def train(df: pd.DataFrame, test_size: float = 0.2, seed: int = 42, target_preci
                 "All data is synthetic -- see src/data_gen.py.",
         "operating_points": operating_points,
         "target_precision_used": target_precision,
+        "cost_based_operating_point": cost_based_operating_point,
         "selected_hyperparameters": best_params,
     }
 

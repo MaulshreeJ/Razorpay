@@ -7,7 +7,7 @@ flowchart LR
     T[Transaction] --> F[Feature engineering<br/>src/features.py]
     F --> M[Risk model<br/>HistGradientBoosting]
     M --> S[Risk score + band]
-    S -->|logged| A[(Audit trail<br/>SQLite)]
+    S -->|logged| A[(Audit trail<br/>append-only JSONL)]
 
     D[Dispute filed<br/>reason code] --> E[Evidence lookup<br/>simulated store]
     E --> P[Evidence engine<br/>deterministic policy]
@@ -77,6 +77,73 @@ demo with no internet). It only calls the JSON endpoints above; it holds
 no logic of its own, so anything the dashboard shows is exactly what the
 API would return to a judge curling it directly.
 
+
+## Cost-based (expected-value) thresholding
+`scripts/train.py` reports a second operating point alongside the shipped
+precision-floor threshold: whichever threshold minimizes total assumed
+cost, given a flat cost per false positive (a cheap automated
+intervention) and a false-negative cost equal to the full disputed amount
+(conservative -- no recovery assumed). At the assumed costs used here,
+the cost-optimal threshold flags nearly every transaction (recall close
+to 100%) -- because when a false positive is assumed this cheap, a
+literal expected-cost minimization has little reason not to over-flag.
+That is the correct output of the calculation, not a bug, and it's exactly
+why the shipped default uses a precision floor instead: it's robust to the
+false-positive-cost assumption being wrong, where the cost-optimal
+threshold isn't. Both are reported in `reports/model_card.md` so that
+tradeoff is visible rather than asserted.
+
+## Merchant-level risk pooling (v1.2)
+`ARCHITECTURE.md`'s own "known limitations" flagged this as the natural
+next feature: merchant-level dispute-rate history. Two related but
+distinct things were built:
+
+1. **A leakage-safe model feature.** `merchant_dispute_rate_90d` in
+   `src/features.py`, computed the same way the existing customer
+   features are: an expanding-window state tracked per merchant as
+   `src/data_gen.py` processes transactions in time order, so a
+   transaction only ever sees that merchant's *prior* history (Laplace-
+   smoothed toward the dataset's overall dispute rate so a merchant with
+   only 1-2 transactions doesn't get a wild 0% or 100% estimate). A test
+   (`test_merchant_history_is_causal`) asserts every merchant's first-ever
+   transaction sees zero prior history.
+2. **An operational rollup view.** `scripts/merchant_rollup.py` /
+   `GET /merchants/rollup` / dashboard section 6: "which merchants are
+   chronically high-risk today," computed over each merchant's *full*
+   history (not leakage-safe, and deliberately not -- it's a reporting
+   view for a human, not a training signal, filtered to merchants with at
+   least 20 transactions so the rates shown aren't small-sample noise).
+
+**An honest caveat, in the same spirit as the recall-improvement pass
+below:** for this feature to have anything real to learn, `src/data_gen.py`
+also gained a new, invented per-merchant "quality" term that feeds into
+the synthetic dispute probability -- the same kind of documented,
+plausible correlate as every other one in that file (merchant-level
+dispute-rate clustering is a well-established real-world pattern; it's
+what card-network merchant-monitoring programs are built around), but it
+is a new source of learnable structure that wasn't in the ground truth
+before. So the recall lift this produces (31.8% -> 40.6% at the same 40%
+precision floor, in one representative run) should be read as "the model
+correctly learns a newly-introduced, real-world-plausible signal when
+given a matching feature" -- a demonstration the architecture works as
+intended -- rather than "the same model got objectively better at an
+unchanged problem." The magnitude of the injected heterogeneity (a
+coefficient of 0.5 on a per-merchant standard-normal draw) is an
+assumption chosen to produce a plausible dispute-rate spread across
+merchants (roughly 3%-17% in a 20k-transaction run), not tuned to hit any
+particular metric.
+
+## Containerization
+A `Dockerfile` builds a single-stage image (`python:3.10-slim`) that
+trains the model and generates all reports at **build time** -- so
+`docker build` fails loudly if synthetic data generation or training ever
+breaks, instead of the API failing silently on its first request. Secrets
+are never baked in: `.dockerignore` excludes `.env`, and the optional
+Gemini narrative layer only ever reads `GEMINI_API_KEY` from the runtime
+environment. `RiskModel`'s existing self-healing retrain fallback (see
+`src/model.py`) still applies if the baked artifact is ever missing or
+version-incompatible -- baking it at build time is purely so the common
+case starts up fast, not something later code silently relies on.
 
 ## Recall improvement pass (v1.1)
 Three genuine, honest levers, each measured -- no synthetic-label tuning:

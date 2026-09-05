@@ -26,3 +26,4 @@ jobs:
         run: |
           python -m scripts.train
           python -m scripts.evaluate_packets
+          python -m scripts.merchant_rollup

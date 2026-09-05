@@ -55,6 +55,8 @@ class Transaction(BaseModel):
     customer_dispute_count_lifetime: int = 0
     customer_refund_count_90d: int = 0
     customer_avg_amount_90d: float = 0.0
+    merchant_dispute_rate_90d: float = 0.0
+    merchant_txn_count_90d: int = 0
 
 
 class Dispute(BaseModel):

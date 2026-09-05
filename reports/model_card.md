@@ -15,16 +15,16 @@ real-world performance.
 
 ## Held-out evaluation
 - Test set size: 4000
-- Dispute rate in test set: 9.43%
+- Dispute rate in test set: 9.00%
 - Hyperparameters were chosen on a separate validation fold carved out of
   training data -- the test set below was never touched until this one
-  final evaluation. Selected: `{'learning_rate': 0.03, 'max_depth': 4, 'l2_regularization': 1.0, 'max_iter': 300}`
-- Operating threshold: 0.2456 (targets precision >= 40%)
+  final evaluation. Selected: `{'learning_rate': 0.03, 'max_depth': 4, 'l2_regularization': 0.5, 'max_iter': 300}`
+- Operating threshold: 0.2037 (targets precision >= 40%)
 - **Precision: 0.400**
-- **Recall: 0.318**
-- PR-AUC: 0.369
+- **Recall: 0.406**
+- PR-AUC: 0.359
 - ROC-AUC: 0.784
-- Confusion matrix [[TN, FP], [FN, TP]]: [[3443, 180], [257, 120]]
+- Confusion matrix [[TN, FP], [FN, TP]]: [[3421, 219], [214, 146]]
 
 ### Why a 40% precision floor, not a stricter one
 The action taken on a flagged transaction is cheap (a confirmation email
@@ -37,18 +37,42 @@ action that would need it.
 ### Precision/recall tradeoff (full curve, not one cherry-picked point)
 | Recall floor | Achieved recall | Precision at that point | Threshold |
 |---|---|---|---|
-| >= 20% | 21.2% | 48.2% | 0.3578 |
-| >= 40% | 40.1% | 37.1% | 0.2069 |
-| >= 60% | 60.2% | 29.3% | 0.1434 |
-| >= 80% | 80.1% | 18.6% | 0.0554 |
+| >= 20% | 20.0% | 54.1% | 0.3678 |
+| >= 40% | 40.0% | 41.1% | 0.2080 |
+| >= 60% | 60.6% | 25.8% | 0.1117 |
+| >= 80% | 81.1% | 16.6% | 0.0577 |
 
 ### Baseline comparison
 A naive rule using only the single strongest feature: **flag if digital_no_delivery == 1 (digital good, no delivery confirmation)**
-- Baseline -- precision: 0.297, recall: 0.276
-- Model (this card, at the 40% precision floor) -- precision: 0.400, recall: 0.318
+- Baseline -- precision: 0.256, recall: 0.239
+- Model (this card, at the 40% precision floor) -- precision: 0.400, recall: 0.406
 
 Reported so the model's value over the obvious one-line rule is checkable,
 not asserted.
+
+### Cost-based alternative operating point
+Instead of targeting a precision floor, this asks a different question:
+"which threshold minimizes total assumed cost?" Assumed unit costs: a false
+positive costs 5.00 (an automated confirmation email or a
+short settlement hold); a false negative costs the full disputed amount
+(the conservative case -- no recovery assumed). These are placeholders, not
+measured -- swap in real support/ops cost if you have it.
+
+| | Threshold | Precision | Recall | Expected cost on test fold |
+|---|---|---|---|---|
+| Cost-optimal | 0.0185 | 0.090 | 1.000 | 18,140.00 |
+| Shipped (precision-floor) threshold | 0.2037 | 0.400 | 0.406 | 112,033.13 |
+| Never flag anything | -- | -- | -- | 243,567.07 |
+
+At this assumed false-positive cost, the cost-optimal policy flags nearly
+every transaction (recall near 100%) -- because when intervention is this
+cheap, over-flagging barely matters under a literal expected-cost
+minimization. That is not a bug in the calculation; it is exactly why the
+shipped default above uses a precision floor instead of this cost model:
+the precision-floor choice is robust to the false-positive-cost assumption
+being wrong, where the cost-optimal threshold is not. Both are reported so
+that tradeoff -- provably cost-minimizing under an assumption, versus
+robust to that assumption being wrong -- is visible, not asserted.
 
 ## Intended use
 Flags transactions at elevated risk of a future chargeback so a merchant can
@@ -62,3 +86,8 @@ autonomous block/allow gate.
   pre-dispute risk. The separate evidence engine (src/evidence_engine.py)
   handles what happens *after* a dispute is filed.
 - No demographic or protected-attribute features are used.
+- The merchant-level dispute-rate feature (merchant_dispute_rate_90d) uses
+  an invented per-merchant heterogeneity term (see ARCHITECTURE.md,
+  "Merchant-level risk pooling") -- real merchant risk clustering exists
+  and is well documented, but this specific spread across merchants was
+  chosen to be plausible, not measured from real data.

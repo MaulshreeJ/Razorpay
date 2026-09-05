@@ -19,6 +19,8 @@ FEATURE_COLUMNS = [
     "hour_of_day",
     "days_to_deliver",
     "digital_no_delivery",
+    "merchant_dispute_rate_90d",
+    "merchant_txn_count_90d",
 ]
 
 
@@ -40,4 +42,6 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
     # permutation importance during tuning) -- naming it directly gives a
     # depth-limited tree a cheaper path to it than re-deriving the AND.
     out["digital_no_delivery"] = ((df["category"] == "digital") & (~df["delivery_confirmed"].astype(bool))).astype(int)
+    out["merchant_dispute_rate_90d"] = df["merchant_dispute_rate_90d"].astype(float)
+    out["merchant_txn_count_90d"] = df["merchant_txn_count_90d"].astype(float)
     return out[FEATURE_COLUMNS]

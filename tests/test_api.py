@@ -62,3 +62,14 @@ def test_packet_endpoint_and_audit_lookup():
 def test_audit_lookup_missing_returns_404():
     r = client.get("/audit/does-not-exist")
     assert r.status_code == 404
+
+
+def test_merchants_rollup_endpoint():
+    r = client.get("/merchants/rollup")
+    assert r.status_code == 200
+    body = r.json()
+    assert "highest_risk_merchants" in body
+    assert "overall_dispute_rate" in body
+    if body["highest_risk_merchants"]:
+        top = body["highest_risk_merchants"][0]
+        assert "merchant_id" in top and "dispute_rate" in top

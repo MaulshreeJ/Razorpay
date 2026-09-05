@@ -106,6 +106,17 @@ def packet_metrics():
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+@app.get("/merchants/rollup")
+def merchants_rollup():
+    path = REPORTS_DIR / "merchant_rollup.json"
+    if not path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="No merchant rollup yet. Run `python -m scripts.merchant_rollup` first.",
+        )
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 @app.post("/score", response_model=RiskScore)
 def score(transaction: Transaction):
     row = pd.DataFrame(
@@ -126,6 +137,8 @@ def score(transaction: Transaction):
                 "cross_border": transaction.ip_country != transaction.billing_country,
                 "hour_of_day": transaction.timestamp.hour,
                 "days_to_deliver": transaction.days_to_deliver or 0.0,
+                "merchant_dispute_rate_90d": transaction.merchant_dispute_rate_90d,
+                "merchant_txn_count_90d": transaction.merchant_txn_count_90d,
             }
         ]
     )

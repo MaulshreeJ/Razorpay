@@ -50,6 +50,14 @@ def generate(n_transactions: int = N_TRANSACTIONS, seed: int = RNG_SEED) -> pd.D
     customer_ids = [f"CUST{i:05d}" for i in range(N_CUSTOMERS)]
     merchant_ids = [f"MERC{i:04d}" for i in range(N_MERCHANTS)]
     repeat_disputer = {cid: (np_rng.random() < 0.07) for cid in customer_ids}
+    # Merchant-level heterogeneity: chargeback literature documents that
+    # dispute risk clusters by merchant (fulfillment reliability, support
+    # responsiveness, refund friendliness) independent of any single
+    # transaction's own features. Modeled here as one fixed, invented
+    # "quality" draw per merchant -- not fit to any real merchant data,
+    # same discipline as every other correlate in this file.
+    merchant_quality = {mid: float(np_rng.normal(0, 1)) for mid in merchant_ids}
+    merchant_state = {mid: {"txn_count": 0, "dispute_count": 0} for mid in merchant_ids}
 
     state = {
         cid: {"txn_count": 0, "dispute_count": 0, "refund_count": 0, "amount_hist": []}
@@ -87,6 +95,17 @@ def generate(n_transactions: int = N_TRANSACTIONS, seed: int = RNG_SEED) -> pd.D
         avg_amount = (sum(st["amount_hist"]) / len(st["amount_hist"])) if st["amount_hist"] else amount
         ticket_size_ratio = amount / avg_amount if avg_amount else 1.0
 
+        # Causal merchant history: computed from ONLY this merchant's prior
+        # transactions (transactions are processed in time order and state
+        # updated after each one, exactly like the customer fields above) --
+        # never from data the model wouldn't actually have yet at scoring
+        # time. Laplace-smoothed toward the dataset's overall dispute rate
+        # (roughly 10%, via the +1 / +10 pseudo-counts) so a merchant with
+        # only 1-2 transactions doesn't get a wild 0% or 100% estimate.
+        mst = merchant_state[mid]
+        merchant_dispute_rate_90d = (mst["dispute_count"] + 1) / (mst["txn_count"] + 10)
+        merchant_txn_count_90d = mst["txn_count"]
+
         row = {
             "transaction_id": f"TXN{idx:06d}",
             "customer_id": cid,
@@ -105,10 +124,13 @@ def generate(n_transactions: int = N_TRANSACTIONS, seed: int = RNG_SEED) -> pd.D
             "customer_refund_count_90d": st["refund_count"],
             "customer_avg_amount_90d": round(avg_amount, 2),
             "ticket_size_ratio": round(ticket_size_ratio, 3),
+            "merchant_dispute_rate_90d": round(merchant_dispute_rate_90d, 4),
+            "merchant_txn_count_90d": merchant_txn_count_90d,
             "hour_of_day": ts.hour,
         }
 
         z = -3.4
+        z += 0.5 * merchant_quality[mid]
         z += 1.8 if (row["category"] == "digital" and not delivery_confirmed) else 0
         z += 1.3 if cross_border else 0
         z += 1.1 if is_subscription else 0
@@ -130,6 +152,9 @@ def generate(n_transactions: int = N_TRANSACTIONS, seed: int = RNG_SEED) -> pd.D
 
         st["txn_count"] += 1
         st["amount_hist"].append(amount)
+        mst["txn_count"] += 1
+        if disputed:
+            mst["dispute_count"] += 1
         rows.append(row)
 
     return pd.DataFrame(rows)

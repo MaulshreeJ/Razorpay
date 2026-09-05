@@ -228,6 +228,8 @@
         <label>Customer disputes (lifetime)<input type="number" name="customer_dispute_count_lifetime" value="0"></label>
         <label>Customer refunds (90d)<input type="number" name="customer_refund_count_90d" value="0"></label>
         <label>Customer avg amount (90d)<input type="number" name="customer_avg_amount_90d" value="0"></label>
+        <label>Merchant dispute rate (90d)<input type="number" name="merchant_dispute_rate_90d" value="0" step="0.01" min="0" max="1"></label>
+        <label>Merchant txns seen (90d)<input type="number" name="merchant_txn_count_90d" value="0"></label>
       </form>
       <button class="primary" onclick="submitScore(event)">Score transaction</button>
       <div class="result" id="scoreResult">
@@ -272,9 +274,16 @@
     </div>
   </section>
 
+  <section>
+    <h2><span class="n">§6</span> Merchant risk rollup</h2>
+    <div class="card">
+      <div id="merchantRollup"><p class="empty">Loading /merchants/rollup…</p></div>
+    </div>
+  </section>
+
   <footer>
     All figures come from a fully synthetic dataset (<code>src/data_gen.py</code>) — see <code>reports/model_card.md</code> for the full disclaimer.
-    Run <code>python -m scripts.train</code> and <code>python -m scripts.evaluate_packets</code> to regenerate.
+    Run <code>python -m scripts.train</code>, <code>python -m scripts.evaluate_packets</code>, and <code>python -m scripts.merchant_rollup</code> to regenerate.
   </footer>
 </div>
 
@@ -402,6 +411,8 @@ async function submitScore(e){
     customer_dispute_count_lifetime: parseInt(f.get('customer_dispute_count_lifetime') || 0),
     customer_refund_count_90d: parseInt(f.get('customer_refund_count_90d') || 0),
     customer_avg_amount_90d: parseFloat(f.get('customer_avg_amount_90d') || 0),
+    merchant_dispute_rate_90d: parseFloat(f.get('merchant_dispute_rate_90d') || 0),
+    merchant_txn_count_90d: parseInt(f.get('merchant_txn_count_90d') || 0),
   };
   const r = await fetch('/score', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
   if(!r.ok){ alert('Score failed — is the model trained? Run python -m scripts.train'); return; }
@@ -433,6 +444,8 @@ const FEATURE_LABELS = {
   hour_of_day: 'Hour of day',
   days_to_deliver: 'Delivery time',
   delivery_confirmed: 'Delivery confirmed',
+  merchant_dispute_rate_90d: "Merchant's historical dispute rate",
+  merchant_txn_count_90d: "Merchant's transaction history (90d)",
 };
 
 async function submitPacket(e){
@@ -481,10 +494,31 @@ async function lookupAudit(e){
   $('#auditJson').innerHTML = highlightJson(data);
 }
 
+async function loadMerchantRollup(){
+  try{
+    const r = await fetch('/merchants/rollup');
+    if(!r.ok) throw new Error('not computed yet');
+    const m = await r.json();
+    const rows = (m.highest_risk_merchants || []).map(row => `
+      <tr><td class="mono">${row.merchant_id}</td><td>${(row.dispute_rate*100).toFixed(1)}%</td><td>${row.txn_count}</td><td>₹${row.avg_amount}</td><td>${(row.top_reason_code || '—').replace(/_/g,' ')}</td></tr>
+    `).join('');
+    $('#merchantRollup').innerHTML = `
+      <table>
+        <thead><tr><th>Merchant</th><th>Dispute rate</th><th>Transactions</th><th>Avg amount</th><th>Top reason code</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <p class="rationale" style="margin-top:14px;">Overall dispute rate: ${(m.overall_dispute_rate*100).toFixed(1)}% across ${m.total_merchants} merchants (${m.merchants_meeting_threshold} with &ge; ${m.min_volume_threshold} transactions, shown above). An operational monitoring view over full merchant history — distinct from the leakage-safe <code>merchant_dispute_rate_90d</code> feature the model actually trains on, which only ever sees a merchant's history up to that point in time.</p>
+    `;
+  }catch(e){
+    $('#merchantRollup').innerHTML = '<p class="empty">No merchant rollup yet — run <code>python -m scripts.merchant_rollup</code> first.</p>';
+  }
+}
+
 checkHealth();
 loadMetrics();
 loadPacketMetrics();
 loadSampleDisputes();
+loadMerchantRollup();
 </script>
 </body>
 </html>
