@@ -6,97 +6,196 @@
 <title>Chargeback Shield</title>
 <style>
   :root{
-    --bg:#F6F5F2; --card:#FFFFFF; --ink:#14151C; --muted:#68655D; --line:#E3E0D8;
+    --bg:#F6F5F1; --surface:#FFFFFF; --surface-2:#FBFAF6; --ink:#14151C; --muted:#68655D; --line:#E3E0D8;
     --accent:#2447E0; --accent-soft:#E9EEFF;
     --good:#1C7C54; --good-soft:#E6F4EC;
     --warn:#A85A00; --warn-soft:#FBEEDD;
     --risk:#AB2B3D; --risk-soft:#FBE9EB;
+    --concede:#5B6472; --concede-soft:#EAECEF;
+    --shadow:0 1px 2px rgba(20,21,28,.04), 0 6px 20px rgba(20,21,28,.05);
+    --radius:12px;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark){
+    html:not([data-theme="light"]){
+      --bg:#0F1014; --surface:#17181F; --surface-2:#1C1E26; --ink:#ECEAE2; --muted:#9B978A; --line:#2A2C36;
+      --accent:#7C9BFF; --accent-soft:#1D2440;
+      --good:#4FBE8B; --good-soft:#122A20;
+      --warn:#D99A47; --warn-soft:#2C2214;
+      --risk:#E38091; --risk-soft:#2E1A1F;
+      --concede:#9AA3B4; --concede-soft:#20222C;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 28px rgba(0,0,0,.35);
+      color-scheme: dark;
+    }
+  }
+  html[data-theme="dark"]{
+    --bg:#0F1014; --surface:#17181F; --surface-2:#1C1E26; --ink:#ECEAE2; --muted:#9B978A; --line:#2A2C36;
+    --accent:#7C9BFF; --accent-soft:#1D2440;
+    --good:#4FBE8B; --good-soft:#122A20;
+    --warn:#D99A47; --warn-soft:#2C2214;
+    --risk:#E38091; --risk-soft:#2E1A1F;
+    --concede:#9AA3B4; --concede-soft:#20222C;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 28px rgba(0,0,0,.35);
+    color-scheme: dark;
   }
   *{box-sizing:border-box;}
+  html{background:var(--bg);}
   body{
     margin:0; background:var(--bg); color:var(--ink);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    line-height:1.5;
+    line-height:1.55; -webkit-font-smoothing:antialiased;
   }
-  .wrap{ max-width:1080px; margin:0 auto; padding:36px 24px 80px; }
-  header{ display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px; margin-bottom:28px; }
-  h1{ margin:0 0 4px; font-size:1.65rem; letter-spacing:-.01em; }
-  header p{ margin:0; color:var(--muted); font-size:.92rem; }
-  .status{ display:flex; align-items:center; gap:8px; font-family:ui-monospace,"IBM Plex Mono",monospace; font-size:12.5px; padding:7px 12px; border-radius:99px; border:1px solid var(--line); background:var(--card); white-space:nowrap; }
-  .dot{ width:8px; height:8px; border-radius:99px; background:var(--muted); }
-  .dot.ok{ background:var(--good); }
-  .dot.bad{ background:var(--risk); }
+  .display{ font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif; }
+  .mono{ font-family:ui-monospace,"SF Mono","Cascadia Code",Consolas,"IBM Plex Mono",monospace; }
 
-  section{ margin-bottom:34px; }
-  h2{ font-size:1.05rem; margin:0 0 14px; display:flex; align-items:center; gap:10px; }
-  h2 .tag{ font-family:ui-monospace,"IBM Plex Mono",monospace; font-size:11px; color:var(--accent); background:var(--accent-soft); padding:2px 8px; border-radius:5px; }
+  .wrap{ max-width:1080px; margin:0 auto; padding:40px 24px 90px; }
 
-  .card{ background:var(--card); border:1px solid var(--line); border-radius:10px; padding:20px 22px; }
+  header.hero{
+    display:flex; justify-content:space-between; align-items:flex-start; gap:20px;
+    flex-wrap:wrap; margin-bottom:22px;
+  }
+  .hero-text{ max-width:640px; }
+  .eyebrow{
+    font-family:inherit; font-size:11.5px; letter-spacing:.09em; text-transform:uppercase;
+    color:var(--accent); display:flex; align-items:center; gap:9px; margin-bottom:14px; font-weight:600;
+  }
+  .eyebrow::before{ content:""; width:20px; height:1px; background:var(--accent); display:inline-block; }
+  h1{ font-size:clamp(1.9rem,4.4vw,2.6rem); margin:0 0 10px; line-height:1.08; letter-spacing:-.01em; text-wrap:balance; }
+  .deck{ margin:0; color:var(--muted); font-size:1.02rem; max-width:56ch; text-wrap:balance; }
+
+  .hero-controls{ display:flex; flex-direction:column; align-items:flex-end; gap:10px; }
+  .status{
+    display:flex; align-items:center; gap:8px; font-size:12px; padding:7px 12px; border-radius:99px;
+    border:1px solid var(--line); background:var(--surface); white-space:nowrap; box-shadow:var(--shadow);
+  }
+  .dot{ width:7px; height:7px; border-radius:99px; background:var(--muted); }
+  .dot.ok{ background:var(--good); } .dot.bad{ background:var(--risk); }
+  .theme-btn{
+    font:inherit; font-size:12px; padding:7px 12px; border-radius:99px; border:1px solid var(--line);
+    background:var(--surface); color:var(--ink); cursor:pointer; box-shadow:var(--shadow);
+  }
+  .theme-btn:hover{ border-color:var(--accent); }
+
+  .flow{
+    display:grid; grid-template-columns:1fr auto 1fr; align-items:stretch; gap:14px;
+    margin:26px 0 6px;
+  }
+  .flow .stage{
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+    padding:16px 18px; box-shadow:var(--shadow);
+  }
+  .flow .stage .k{ font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--accent); font-weight:700; margin-bottom:6px; }
+  .flow .stage .t{ font-weight:600; margin-bottom:3px; }
+  .flow .stage .d{ font-size:.83rem; color:var(--muted); }
+  .flow .arrow{ display:flex; align-items:center; color:var(--muted); font-size:1.2rem; }
+  @media (max-width:640px){ .flow{ grid-template-columns:1fr; } .flow .arrow{ display:none; } }
+
+  section{ margin:46px 0; scroll-margin-top:24px; }
+  h2{
+    font-size:.78rem; letter-spacing:.08em; text-transform:uppercase; color:var(--muted);
+    margin:0 0 16px; display:flex; align-items:center; gap:10px; font-weight:700;
+  }
+  h2 .n{ color:var(--accent); font-family:inherit; }
+
+  .card{
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+    padding:22px 24px; box-shadow:var(--shadow);
+  }
   .grid{ display:grid; gap:14px; }
-  .kpis{ grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); }
-  .kpi{ background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px 18px; }
-  .kpi .v{ font-family:ui-monospace,"IBM Plex Mono",monospace; font-size:1.5rem; font-weight:600; }
-  .kpi .l{ font-size:.78rem; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-top:2px; }
+  .kpis{ grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); }
+  .kpi{
+    background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:16px 18px;
+    border-left:3px solid var(--accent);
+  }
+  .kpi .v{ font-family:inherit; font-size:1.6rem; font-weight:700; }
+  .kpi .l{ font-size:.74rem; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-top:3px; }
 
-  table{ width:100%; border-collapse:collapse; font-size:.88rem; }
-  th{ text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); padding:8px 10px; border-bottom:1px solid var(--line); }
-  td{ padding:9px 10px; border-bottom:1px solid var(--line); font-family:ui-monospace,"IBM Plex Mono",monospace; }
+  table{ width:100%; border-collapse:collapse; font-size:.87rem; }
+  th{ text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); padding:9px 10px; border-bottom:1px solid var(--line); }
+  td{ padding:10px; border-bottom:1px solid var(--line); }
+  tbody tr:last-child td{ border-bottom:none; }
 
-  .bars{ display:flex; flex-direction:column; gap:10px; }
-  .bar-row{ display:grid; grid-template-columns:90px 1fr 50px; align-items:center; gap:10px; font-size:.85rem; }
-  .bar-track{ background:var(--bg); border-radius:6px; height:14px; overflow:hidden; border:1px solid var(--line); }
-  .bar-fill{ height:100%; border-radius:6px; }
-  .bar-fill.fight{ background:var(--accent); }
-  .bar-fill.concede{ background:var(--muted); }
-  .bar-fill.review{ background:var(--warn); }
+  .stacked-bar{ display:flex; height:26px; border-radius:7px; overflow:hidden; border:1px solid var(--line); }
+  .stacked-bar span{ height:100%; }
+  .legend{ display:flex; gap:18px; flex-wrap:wrap; margin-top:12px; font-size:.83rem; }
+  .legend .item{ display:flex; align-items:center; gap:7px; }
+  .legend .swatch{ width:10px; height:10px; border-radius:3px; }
 
-  form{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; margin-bottom:16px; }
-  label{ display:flex; flex-direction:column; gap:5px; font-size:.82rem; color:var(--muted); }
-  input, select{ font:inherit; padding:8px 10px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--ink); }
+  form{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; margin-bottom:18px; }
+  label{ display:flex; flex-direction:column; gap:5px; font-size:.8rem; color:var(--muted); }
+  input, select{
+    font:inherit; padding:9px 11px; border:1px solid var(--line); border-radius:8px;
+    background:var(--surface-2); color:var(--ink);
+  }
+  input:focus, select:focus, button:focus-visible, .theme-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
   .checkline{ flex-direction:row; align-items:center; gap:8px; }
-  button{ font:inherit; font-weight:600; background:var(--accent); color:#fff; border:none; border-radius:7px; padding:10px 18px; cursor:pointer; }
-  button:hover{ opacity:.9; }
-  button.secondary{ background:var(--card); color:var(--ink); border:1px solid var(--line); }
+  button.primary{
+    font:inherit; font-weight:600; font-size:.92rem; background:var(--accent); color:#fff; border:none;
+    border-radius:9px; padding:11px 20px; cursor:pointer;
+  }
+  button.primary:hover{ opacity:.92; }
+  button.secondary{
+    font:inherit; font-size:.82rem; background:var(--surface-2); color:var(--ink); border:1px solid var(--line);
+    border-radius:8px; padding:7px 12px; cursor:pointer;
+  }
 
-  .pill{ display:inline-block; font-family:ui-monospace,"IBM Plex Mono",monospace; font-size:12px; font-weight:600; padding:4px 10px; border-radius:99px; }
+  .pill{ display:inline-block; font-size:12px; font-weight:700; padding:4px 11px; border-radius:99px; }
   .pill.LOW, .pill.FIGHT{ background:var(--good-soft); color:var(--good); }
   .pill.MEDIUM, .pill.REVIEW{ background:var(--warn-soft); color:var(--warn); }
-  .pill.HIGH, .pill.CONCEDE{ background:var(--risk-soft); color:var(--risk); }
+  .pill.HIGH{ background:var(--risk-soft); color:var(--risk); }
+  .pill.CONCEDE{ background:var(--concede-soft); color:var(--concede); }
 
-  .result{ margin-top:16px; padding-top:16px; border-top:1px solid var(--line); display:none; }
+  .result{ margin-top:18px; padding-top:18px; border-top:1px solid var(--line); display:none; }
   .result.show{ display:block; }
-  .meter{ background:var(--bg); border:1px solid var(--line); border-radius:8px; height:22px; overflow:hidden; margin:8px 0; }
-  .meter-fill{ height:100%; background:var(--accent); display:flex; align-items:center; justify-content:flex-end; padding-right:8px; color:#fff; font-family:ui-monospace,monospace; font-size:11px; }
+  .meter{ background:var(--surface-2); border:1px solid var(--line); border-radius:8px; height:24px; overflow:hidden; margin:10px 0; }
+  .meter-fill{ height:100%; background:var(--accent); display:flex; align-items:center; justify-content:flex-end; padding-right:9px; color:#fff; font-size:11px; transition:width .3s ease; }
 
-  .ev-list{ list-style:none; margin:12px 0; padding:0; display:flex; flex-direction:column; gap:6px; }
-  .ev-list li{ display:flex; align-items:center; gap:8px; font-size:.88rem; padding:6px 10px; border-radius:6px; background:var(--bg); }
-  .ev-list .mark{ font-weight:700; width:16px; text-align:center; }
+  .ev-list{ list-style:none; margin:14px 0; padding:0; display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:7px; }
+  .ev-list li{ display:flex; align-items:center; gap:9px; font-size:.87rem; padding:8px 11px; border-radius:8px; background:var(--surface-2); border:1px solid var(--line); }
+  .ev-list .mark{ font-weight:700; width:14px; text-align:center; }
   .ev-list li.present .mark{ color:var(--good); }
   .ev-list li.missing .mark{ color:var(--risk); }
-  .ev-list li.missing{ opacity:.75; }
+  .ev-list li.missing{ opacity:.7; }
 
-  .rationale{ font-size:.9rem; color:var(--muted); margin-top:8px; }
-  pre.json{ background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:14px; font-size:.8rem; overflow-x:auto; max-height:280px; }
+  .rationale{ font-size:.9rem; color:var(--muted); margin-top:6px; }
+  .rationale strong{ color:var(--ink); }
+  pre.json{
+    background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:16px;
+    font-size:.8rem; overflow-x:auto; max-height:300px; line-height:1.6;
+  }
+  .jk{ color:var(--accent); } .js{ color:var(--good); } .jn{ color:var(--warn); }
   .empty{ color:var(--muted); font-size:.88rem; }
   .row-inline{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-  footer{ margin-top:40px; padding-top:18px; border-top:1px solid var(--line); font-size:.8rem; color:var(--muted); }
+  footer{ margin-top:44px; padding-top:20px; border-top:1px solid var(--line); font-size:.79rem; color:var(--muted); }
+  footer code{ background:var(--surface-2); padding:1px 5px; border-radius:4px; }
+  @media (prefers-reduced-motion: reduce){ *{ transition:none !important; } }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <div>
-      <h1>Chargeback Shield</h1>
-      <p>Razorpay Buildathon 2026 · Track 02, AI Risk Manager · chargeback / friendly-fraud disputes</p>
+  <header class="hero">
+    <div class="hero-text">
+      <div class="eyebrow">Razorpay AI Buildathon 2026 · Track 02 — AI Risk Manager</div>
+      <h1 class="display">Chargeback Shield</h1>
+      <p class="deck">Predicts which transactions will be disputed before they are. When a dispute is filed, assembles exactly the evidence its reason code requires and recommends fight, concede, or review — under a policy that never fabricates evidence and never guesses.</p>
     </div>
-    <div class="status" id="apiStatus"><span class="dot"></span><span>checking API…</span></div>
+    <div class="hero-controls">
+      <div class="status" id="apiStatus"><span class="dot"></span><span>checking API…</span></div>
+      <button class="theme-btn" id="themeBtn" type="button" onclick="toggleTheme()">🌓 Toggle theme</button>
+    </div>
   </header>
 
-  <section>
-    <h2><span class="tag">§1</span> Model performance (held-out test set)</h2>
+  <div class="flow">
+    <div class="stage"><div class="k">Stage 1 · Predict</div><div class="t">Before the dispute is filed</div><div class="d">Score every transaction for dispute risk; a cheap intervention (email, short hold) on anything flagged.</div></div>
+    <div class="arrow">→</div>
+    <div class="stage"><div class="k">Stage 2 · Respond</div><div class="t">After the dispute is filed</div><div class="d">Assemble the required evidence and apply a fixed fight / concede / review policy — no LLM in the decision.</div></div>
+  </div>
+
+  <section id="metrics-section">
+    <h2><span class="n">§1</span> Model performance — held-out test set</h2>
     <div class="card">
       <div class="grid kpis" id="kpiGrid"><p class="empty">Loading /metrics…</p></div>
-      <div style="margin-top:18px;">
+      <div style="margin-top:20px;">
         <table>
           <thead><tr><th>Recall floor</th><th>Achieved recall</th><th>Precision at that point</th><th>Threshold</th></tr></thead>
           <tbody id="tradeoffBody"><tr><td colspan="4" class="empty">Loading…</td></tr></tbody>
@@ -107,14 +206,14 @@
   </section>
 
   <section>
-    <h2><span class="tag">§2</span> Evidence-packet engine, batch results</h2>
+    <h2><span class="n">§2</span> Evidence-packet engine — batch results</h2>
     <div class="card">
-      <div class="bars" id="packetBars"><p class="empty">Loading /packet-metrics…</p></div>
+      <div id="packetBars"><p class="empty">Loading /packet-metrics…</p></div>
     </div>
   </section>
 
   <section>
-    <h2><span class="tag">§3</span> Score a transaction</h2>
+    <h2><span class="n">§3</span> Score a transaction</h2>
     <div class="card">
       <form id="scoreForm">
         <label>Amount (₹)<input type="number" name="amount" value="4200" step="1" required></label>
@@ -130,7 +229,7 @@
         <label>Customer refunds (90d)<input type="number" name="customer_refund_count_90d" value="0"></label>
         <label>Customer avg amount (90d)<input type="number" name="customer_avg_amount_90d" value="0"></label>
       </form>
-      <button onclick="submitScore(event)">Score transaction</button>
+      <button class="primary" onclick="submitScore(event)">Score transaction</button>
       <div class="result" id="scoreResult">
         <p><span class="pill" id="riskBandPill">—</span> <span id="riskProbText" class="rationale"></span></p>
         <div class="meter"><div class="meter-fill" id="riskMeter" style="width:0%">0%</div></div>
@@ -139,7 +238,7 @@
   </section>
 
   <section>
-    <h2><span class="tag">§4</span> Generate an evidence packet</h2>
+    <h2><span class="n">§4</span> Generate an evidence packet</h2>
     <div class="card">
       <form id="packetForm">
         <label>Sample disputed transaction
@@ -148,37 +247,66 @@
         <label>Reason code<input type="text" name="reason_code" id="reasonCodeField" readonly></label>
         <label>Disputed amount (₹)<input type="number" name="amount" id="amountField" readonly></label>
       </form>
-      <button onclick="submitPacket(event)">Generate packet</button>
+      <button class="primary" onclick="submitPacket(event)">Generate packet</button>
       <div class="result" id="packetResult">
         <p><span class="pill" id="recPill">—</span> <span class="rationale" id="completenessText"></span></p>
         <ul class="ev-list" id="evList"></ul>
         <p class="rationale"><strong>Policy rationale (authoritative):</strong> <span id="rationaleText"></span></p>
         <p class="rationale" id="narrativeBlock" style="display:none;"><strong>AI-drafted summary (cosmetic only):</strong> <span id="narrativeText"></span></p>
-        <p class="row-inline"><span class="rationale">audit id:</span> <code id="auditIdOut"></code>
+        <p class="row-inline" style="margin-top:10px;"><span class="rationale">audit id:</span> <code class="mono" id="auditIdOut"></code>
           <button class="secondary" onclick="copyAuditId(event)">Use in audit lookup ↓</button></p>
       </div>
     </div>
   </section>
 
   <section>
-    <h2><span class="tag">§5</span> Audit trail lookup</h2>
+    <h2><span class="n">§5</span> Audit trail lookup</h2>
     <div class="card">
       <form id="auditForm">
         <label>Audit ID<input type="text" name="audit_id" id="auditIdInput" placeholder="e.g. score-TXN000010"></label>
       </form>
-      <button onclick="lookupAudit(event)">Look up</button>
-      <div class="result" id="auditResult"><pre class="json" id="auditJson"></pre></div>
+      <button class="primary" onclick="lookupAudit(event)">Look up</button>
+      <div class="result" id="auditResult"><pre class="json mono" id="auditJson"></pre></div>
     </div>
   </section>
 
   <footer>
-    All figures are computed from a fully synthetic dataset (src/data_gen.py) — see reports/model_card.md for the full disclaimer.
+    All figures come from a fully synthetic dataset (<code>src/data_gen.py</code>) — see <code>reports/model_card.md</code> for the full disclaimer.
     Run <code>python -m scripts.train</code> and <code>python -m scripts.evaluate_packets</code> to regenerate.
   </footer>
 </div>
 
 <script>
 const $ = (sel) => document.querySelector(sel);
+
+// ---- theme ----
+(function initTheme(){
+  try{
+    const saved = localStorage.getItem('cs-theme');
+    if(saved) document.documentElement.setAttribute('data-theme', saved);
+  }catch(e){}
+})();
+function toggleTheme(){
+  const cur = document.documentElement.getAttribute('data-theme');
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  try{ localStorage.setItem('cs-theme', next); }catch(e){}
+}
+
+// ---- tiny JSON syntax highlighter (no external libs) ----
+function highlightJson(obj){
+  const str = JSON.stringify(obj, null, 2);
+  const escaped = str.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  return escaped.replace(/(&quot;.*?&quot;)(:?)|(\btrue\b|\bfalse\b|\bnull\b)|(-?\d+\.?\d*)/g, (m, str1, colon, bool, num) => {
+    if(str1){
+      const cls = colon ? 'jk' : 'js';
+      return `<span class="${cls}">${str1}</span>${colon || ''}`;
+    }
+    if(bool !== undefined) return `<span class="jn">${bool}</span>`;
+    if(num !== undefined) return `<span class="jn">${num}</span>`;
+    return m;
+  }).replace(/"/g, '&quot;');
+}
 
 async function checkHealth(){
   const el = $('#apiStatus');
@@ -202,9 +330,10 @@ async function loadMetrics(){
       <div class="kpi"><div class="v">${(m.dispute_rate_test_set*100).toFixed(1)}%</div><div class="l">Test set dispute rate</div></div>
     `;
     $('#tradeoffBody').innerHTML = (m.operating_points || []).map(p => `
-      <tr><td>&ge; ${(p.recall_floor*100).toFixed(0)}%</td><td>${(p.achieved_recall*100).toFixed(1)}%</td><td>${(p.precision*100).toFixed(1)}%</td><td>${p.threshold.toFixed(4)}</td></tr>
+      <tr><td>&ge; ${(p.recall_floor*100).toFixed(0)}%</td><td>${(p.achieved_recall*100).toFixed(1)}%</td><td>${(p.precision*100).toFixed(1)}%</td><td class="mono">${p.threshold.toFixed(4)}</td></tr>
     `).join('');
-    $('#metricsNote').textContent = m.note || '';
+    const tp = m.target_precision_used != null ? ` Operating point targets ${(m.target_precision_used*100).toFixed(0)}% precision (a business choice — the flagged-transaction action is cheap, so recall was favored).` : '';
+    $('#metricsNote').textContent = (m.note || '') + tp;
   }catch(e){
     $('#kpiGrid').innerHTML = '<p class="empty">No metrics yet — run <code>python -m scripts.train</code> first.</p>';
   }
@@ -218,17 +347,19 @@ async function loadPacketMetrics(){
     const b = m.recommendation_breakdown || {};
     const total = m.disputed_transactions || 1;
     const rows = [
-      ['FIGHT', b.FIGHT || 0, 'fight'],
-      ['CONCEDE', b.CONCEDE || 0, 'concede'],
-      ['REVIEW', b.REVIEW || 0, 'review'],
+      ['FIGHT', b.FIGHT || 0, 'var(--good)'],
+      ['REVIEW', b.REVIEW || 0, 'var(--warn)'],
+      ['CONCEDE', b.CONCEDE || 0, 'var(--concede)'],
     ];
-    $('#packetBars').innerHTML = rows.map(([label, count, cls]) => `
-      <div class="bar-row">
-        <div>${label}</div>
-        <div class="bar-track"><div class="bar-fill ${cls}" style="width:${(count/total*100).toFixed(1)}%"></div></div>
-        <div>${count}</div>
-      </div>
-    `).join('') + `<p class="rationale" style="margin-top:6px;">Across ${total} disputed transactions — ${(m.avg_completeness_ratio*100).toFixed(1)}% average evidence completeness, ${(m.packets_fully_complete_pct*100).toFixed(1)}% of packets fully complete.</p>`;
+    const bar = rows.map(([label, count, color]) => `<span style="width:${(count/total*100).toFixed(2)}%; background:${color};"></span>`).join('');
+    const legend = rows.map(([label, count, color]) => `
+      <div class="item"><span class="swatch" style="background:${color}"></span>${label} — ${count} (${(count/total*100).toFixed(0)}%)</div>
+    `).join('');
+    $('#packetBars').innerHTML = `
+      <div class="stacked-bar">${bar}</div>
+      <div class="legend">${legend}</div>
+      <p class="rationale" style="margin-top:14px;">Across ${total} disputed transactions — ${(m.avg_completeness_ratio*100).toFixed(1)}% average evidence completeness, ${(m.packets_fully_complete_pct*100).toFixed(1)}% of packets fully complete.</p>
+    `;
   }catch(e){
     $('#packetBars').innerHTML = '<p class="empty">No packet metrics yet — run <code>python -m scripts.evaluate_packets</code> first.</p>';
   }
@@ -326,7 +457,7 @@ async function lookupAudit(e){
   $('#auditResult').classList.add('show');
   if(!r.ok){ $('#auditJson').textContent = 'No audit record found for "' + id + '".'; return; }
   const data = await r.json();
-  $('#auditJson').textContent = JSON.stringify(data, null, 2);
+  $('#auditJson').innerHTML = highlightJson(data);
 }
 
 checkHealth();
