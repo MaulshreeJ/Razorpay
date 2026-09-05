@@ -153,12 +153,7 @@ normal internet access should let the real call through.)
 - Real evidence-retrieval integration (currently simulated) in place of the
   synthetic evidence store.
 
-## Pitch outline (for the 5-minute video)
-1. The business lever: chargeback ratio drives real card-network compliance
-   risk for merchants, not just the disputed amount.
-2. Two-stage system: predict before the dispute, respond after it.
-3. Show the honest precision/recall tradeoff table -- not one number.
-4. Show one FIGHT and one CONCEDE packet end to end, and the audit record
-   behind each.
-5. Close on what's deliberately *not* automated (the LLM never decides)
-   and why that matters for a defense-only track.
+## Pitch video
+See `PITCH_SCRIPT.md` for the full timed 5-minute script (screen-direction
+cues, live-demo beats, and a recording checklist) used for the buildathon
+submission.
