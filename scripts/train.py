@@ -57,6 +57,14 @@ action that would need it.
 |---|---|---|---|
 {operating_points_table}
 
+### Baseline comparison
+A naive rule using only the single strongest feature: **{baseline_rule}**
+- Baseline -- precision: {baseline_precision:.3f}, recall: {baseline_recall:.3f}
+- Model (this card, at the {target_precision_used:.0%} precision floor) -- precision: {precision:.3f}, recall: {recall:.3f}
+
+Reported so the model's value over the obvious one-line rule is checkable,
+not asserted.
+
 ## Intended use
 Flags transactions at elevated risk of a future chargeback so a merchant can
 take a cheap preventive action (confirmation email, short settlement hold)
@@ -91,7 +99,15 @@ def main():
         for p in metrics["operating_points"]
     )
     with open(MODEL_CARD_PATH, "w") as f:
-        f.write(MODEL_CARD_TEMPLATE.format(operating_points_table=table_rows, **metrics))
+        f.write(
+            MODEL_CARD_TEMPLATE.format(
+                operating_points_table=table_rows,
+                baseline_rule=metrics["baseline"]["rule"],
+                baseline_precision=metrics["baseline"]["precision"],
+                baseline_recall=metrics["baseline"]["recall"],
+                **metrics,
+            )
+        )
 
     print(json.dumps(metrics, indent=2))
     print(f"\nWrote {METRICS_PATH} and {MODEL_CARD_PATH}")

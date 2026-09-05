@@ -233,6 +233,8 @@
       <div class="result" id="scoreResult">
         <p><span class="pill" id="riskBandPill">—</span> <span id="riskProbText" class="rationale"></span></p>
         <div class="meter"><div class="meter-fill" id="riskMeter" style="width:0%">0%</div></div>
+        <p class="rationale" style="margin-top:12px;"><strong>Why:</strong></p>
+        <ul class="ev-list" id="factorList"></ul>
       </div>
     </div>
   </section>
@@ -411,8 +413,27 @@ async function submitScore(e){
   const pct = (s.dispute_probability*100).toFixed(1);
   $('#riskMeter').style.width = pct + '%';
   $('#riskMeter').textContent = pct + '%';
+  $('#factorList').innerHTML = (s.top_factors || []).map(f => {
+    const up = f.contribution >= 0;
+    const label = FEATURE_LABELS[f.feature] || f.feature.replace(/_/g, ' ');
+    return `<li class="${up ? 'missing' : 'present'}"><span class="mark">${up ? '↑' : '↓'}</span> ${label} <span class="mono" style="margin-left:auto; color:var(--muted); font-size:.78rem;">${(f.contribution*100).toFixed(1)}pp</span></li>`;
+  }).join('') || '<li class="rationale" style="background:none; border:none; padding:0;">No explanation available (model not yet retrained with feature baselines).</li>';
   $('#auditIdInput').value = 'score-' + payload.transaction_id;
 }
+
+const FEATURE_LABELS = {
+  digital_no_delivery: 'Digital good with no delivery confirmation',
+  ticket_size_ratio: "Amount vs. this customer's usual order size",
+  customer_dispute_count_lifetime: "Customer's past dispute history",
+  customer_txn_count_90d: "Customer's transaction history (90d)",
+  customer_refund_count_90d: "Customer's refund history (90d)",
+  cross_border: 'Cross-border transaction',
+  is_subscription: 'Subscription purchase',
+  amount: 'Transaction amount',
+  hour_of_day: 'Hour of day',
+  days_to_deliver: 'Delivery time',
+  delivery_confirmed: 'Delivery confirmed',
+};
 
 async function submitPacket(e){
   e.preventDefault();

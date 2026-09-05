@@ -65,11 +65,18 @@ class Dispute(BaseModel):
     filed_at: datetime
 
 
+class RiskFactor(BaseModel):
+    feature: str
+    value: Optional[float] = None
+    contribution: float  # signed: positive = pushed this transaction's risk up
+
+
 class RiskScore(BaseModel):
     transaction_id: str
     dispute_probability: float
     risk_band: RiskBand
     model_version: str
+    top_factors: list[RiskFactor] = []
 
 
 class EvidenceItem(BaseModel):

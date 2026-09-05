@@ -42,6 +42,14 @@ action that would need it.
 | >= 60% | 60.2% | 29.3% | 0.1434 |
 | >= 80% | 80.1% | 18.6% | 0.0554 |
 
+### Baseline comparison
+A naive rule using only the single strongest feature: **flag if digital_no_delivery == 1 (digital good, no delivery confirmation)**
+- Baseline -- precision: 0.297, recall: 0.276
+- Model (this card, at the 40% precision floor) -- precision: 0.400, recall: 0.318
+
+Reported so the model's value over the obvious one-line rule is checkable,
+not asserted.
+
 ## Intended use
 Flags transactions at elevated risk of a future chargeback so a merchant can
 take a cheap preventive action (confirmation email, short settlement hold)

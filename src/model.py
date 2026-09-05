@@ -32,6 +32,7 @@ MODEL_VERSION = "v1-histgb"
 ARTIFACT_DIR = Path(__file__).resolve().parent.parent / "reports"
 MODEL_PATH = ARTIFACT_DIR / "model.joblib"
 THRESHOLDS_PATH = ARTIFACT_DIR / "thresholds.json"
+BASELINES_PATH = ARTIFACT_DIR / "feature_baselines.json"
 
 
 # Grid kept small and fast (~8 fits) so `python -m scripts.train` stays a
@@ -107,8 +108,29 @@ def train(df: pd.DataFrame, test_size: float = 0.2, seed: int = 42, target_preci
                 }
             )
 
+    # Naive baseline for comparison: flag on the single strongest feature
+    # alone (confirmed by permutation importance during tuning). If the
+    # trained model can't clearly beat this, that's worth knowing --
+    # not hiding.
+    baseline_preds = (X_test["digital_no_delivery"] >= 1).astype(int)
+    baseline_metrics = {
+        "rule": "flag if digital_no_delivery == 1 (digital good, no delivery confirmation)",
+        "precision": float(precision_score(y_test, baseline_preds, zero_division=0)),
+        "recall": float(recall_score(y_test, baseline_preds, zero_division=0)),
+    }
+
+    # Per-feature baseline values (median on the training fold, NaN-safe)
+    # for the occlusion-based explanation RiskModel.explain() uses.
+    feature_baselines = {}
+    for col in X_trainval.columns:
+        vals = X_trainval[col].dropna()
+        feature_baselines[col] = float(vals.median()) if len(vals) else 0.0
+    with open(BASELINES_PATH, "w") as f:
+        json.dump(feature_baselines, f, indent=2)
+
     metrics = {
         "model_version": MODEL_VERSION,
+        "baseline": baseline_metrics,
         "test_set_size": int(len(y_test)),
         "dispute_rate_test_set": float(y_test.mean()),
         "operating_threshold": operating_threshold,
@@ -160,6 +182,11 @@ class RiskModel:
                 "band_low": metrics["operating_threshold"] * 0.5,
                 "band_high": min(metrics["operating_threshold"] * 1.8, 0.95),
             }
+        try:
+            with open(BASELINES_PATH) as f:
+                self.feature_baselines = json.load(f)
+        except Exception:
+            self.feature_baselines = {}
 
     def score(self, transaction_row: pd.DataFrame) -> tuple[float, RiskBand]:
         X = build_features(transaction_row)
@@ -171,3 +198,35 @@ class RiskModel:
         else:
             band = RiskBand.HIGH
         return prob, band
+
+    def explain(self, transaction_row: pd.DataFrame, top_n: int = 3) -> list[dict]:
+        """Occlusion-based per-prediction explanation: for each feature,
+        compare the real prediction to one where that single feature is
+        replaced by its training-set median (its "typical" value). The
+        drop in predicted probability is that feature's contribution to
+        *this* transaction's score -- a lightweight stand-in for SHAP that
+        needs no extra dependency and is easy to reason about: "removing
+        this feature's actual value and using a typical one instead would
+        have changed the score by this much."
+        """
+        if not self.feature_baselines:
+            return []
+        X = build_features(transaction_row)
+        base_prob = float(self.clf.predict_proba(X)[:, 1][0])
+        contributions = []
+        for col in X.columns:
+            if col not in self.feature_baselines:
+                continue
+            occluded = X.copy()
+            occluded[col] = self.feature_baselines[col]
+            occluded_prob = float(self.clf.predict_proba(occluded)[:, 1][0])
+            raw_value = X.iloc[0][col]
+            contributions.append(
+                {
+                    "feature": col,
+                    "value": None if pd.isna(raw_value) else float(raw_value),
+                    "contribution": round(base_prob - occluded_prob, 4),
+                }
+            )
+        contributions.sort(key=lambda c: abs(c["contribution"]), reverse=True)
+        return contributions[:top_n]

@@ -138,11 +138,13 @@ def score(transaction: Transaction):
         )
 
     prob, band = model.score(row)
+    top_factors = model.explain(row)
     result = RiskScore(
         transaction_id=transaction.transaction_id,
         dispute_probability=round(prob, 4),
         risk_band=band,
         model_version=model.clf.__class__.__name__,
+        top_factors=top_factors,
     )
     log_event(
         audit_id=f"score-{transaction.transaction_id}",

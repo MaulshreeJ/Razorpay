@@ -1,5 +1,7 @@
 # Chargeback Shield
 
+![Tests](https://github.com/MaulshreeJ/Razorpay/actions/workflows/tests.yml/badge.svg)
+
 **Razorpay AI Buildathon 2026 -- Track 02, AI Risk Manager**
 Loss class: **chargeback / friendly-fraud disputes** (one class of loss, per the track brief).
 
@@ -60,6 +62,15 @@ uvicorn src.api:app --reload
 # POST /score, POST /disputes/packet, GET /audit/{id}, GET /metrics,
 # GET /packet-metrics, GET /sample-disputes
 ```
+
+## Explainability
+`POST /score` returns `top_factors`: the 2-3 features that most moved
+*this specific* prediction, via occlusion (compare the real prediction to
+one where a feature is swapped for its typical training-set value). No
+extra dependency, and it's shown live on the dashboard under "Why". The
+model card also reports a naive one-rule baseline next to the trained
+model's numbers, so the model's actual lift is checkable rather than
+asserted.
 
 ## Current results (synthetic, held-out test set)
 See `reports/metrics.json`, `reports/model_card.md`, and
