@@ -54,7 +54,7 @@ def main():
         "note": "Computed on the same synthetic disputed-transaction batch data_gen.py produces.",
     }
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with open(OUT_PATH, "w") as f:
+    with open(OUT_PATH, "w", encoding="utf-8") as f:
         json.dump(metrics, f, indent=2)
     print(json.dumps(metrics, indent=2))
 

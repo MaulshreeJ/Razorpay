@@ -67,7 +67,7 @@ def get_model() -> RiskModel:
 def dashboard():
     if not DASHBOARD_PATH.exists():
         raise HTTPException(status_code=404, detail="Dashboard not found.")
-    return DASHBOARD_PATH.read_text()
+    return DASHBOARD_PATH.read_text(encoding="utf-8")
 
 
 @app.get("/health")
@@ -103,7 +103,7 @@ def packet_metrics():
             status_code=404,
             detail="No packet metrics yet. Run `python -m scripts.evaluate_packets` first.",
         )
-    return json.loads(path.read_text())
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 @app.post("/score", response_model=RiskScore)
@@ -201,7 +201,7 @@ def metrics():
     path = REPORTS_DIR / "metrics.json"
     if not path.exists():
         raise HTTPException(status_code=404, detail="No metrics yet. Run `python -m scripts.train` first.")
-    return json.loads(path.read_text())
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

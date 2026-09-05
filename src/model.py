@@ -125,7 +125,7 @@ def train(df: pd.DataFrame, test_size: float = 0.2, seed: int = 42, target_preci
     for col in X_trainval.columns:
         vals = X_trainval[col].dropna()
         feature_baselines[col] = float(vals.median()) if len(vals) else 0.0
-    with open(BASELINES_PATH, "w") as f:
+    with open(BASELINES_PATH, "w", encoding="utf-8") as f:
         json.dump(feature_baselines, f, indent=2)
 
     metrics = {
@@ -149,7 +149,7 @@ def train(df: pd.DataFrame, test_size: float = 0.2, seed: int = 42, target_preci
 
     ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
     joblib.dump(clf, MODEL_PATH)
-    with open(THRESHOLDS_PATH, "w") as f:
+    with open(THRESHOLDS_PATH, "w", encoding="utf-8") as f:
         json.dump(
             {
                 "operating_threshold": operating_threshold,
@@ -166,7 +166,7 @@ class RiskModel:
     def __init__(self):
         try:
             self.clf = joblib.load(MODEL_PATH)
-            with open(THRESHOLDS_PATH) as f:
+            with open(THRESHOLDS_PATH, encoding="utf-8") as f:
                 self.thresholds = json.load(f)
         except Exception:
             # Self-healing fallback: a corrupt or version-mismatched
@@ -183,7 +183,7 @@ class RiskModel:
                 "band_high": min(metrics["operating_threshold"] * 1.8, 0.95),
             }
         try:
-            with open(BASELINES_PATH) as f:
+            with open(BASELINES_PATH, encoding="utf-8") as f:
                 self.feature_baselines = json.load(f)
         except Exception:
             self.feature_baselines = {}

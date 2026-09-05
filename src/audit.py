@@ -28,7 +28,7 @@ def log_event(audit_id: str, event_type: str, subject_id: str, payload: dict) ->
         "payload": payload,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
-    with open(LOG_PATH, "a") as f:
+    with open(LOG_PATH, "a", encoding="utf-8") as f:
         f.write(json.dumps(record, default=str) + "\n")
 
 
@@ -37,7 +37,7 @@ def get_event(audit_id: str) -> dict | None:
     if not LOG_PATH.exists():
         return None
     match = None
-    with open(LOG_PATH) as f:
+    with open(LOG_PATH, encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if not line:

@@ -91,14 +91,14 @@ def main():
     metrics = train(df)
 
     METRICS_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with open(METRICS_PATH, "w") as f:
+    with open(METRICS_PATH, "w", encoding="utf-8") as f:
         json.dump(metrics, f, indent=2)
 
     table_rows = "\n".join(
         f"| >= {p['recall_floor']:.0%} | {p['achieved_recall']:.1%} | {p['precision']:.1%} | {p['threshold']:.4f} |"
         for p in metrics["operating_points"]
     )
-    with open(MODEL_CARD_PATH, "w") as f:
+    with open(MODEL_CARD_PATH, "w", encoding="utf-8") as f:
         f.write(
             MODEL_CARD_TEMPLATE.format(
                 operating_points_table=table_rows,
