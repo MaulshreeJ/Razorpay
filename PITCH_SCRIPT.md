@@ -3,70 +3,68 @@
 **Track:** Razorpay AI Buildathon 2026 — Track 02, AI Risk Manager
 **Total runtime target:** 5:00
 **Format:** Screen recording (dashboard walkthrough) with voiceover. Cues in *[brackets]* are on-screen direction, not spoken.
+**Word count (spoken lines only): ~670 words → ~4:15-4:30 at a measured pace, before demo-click pauses (Score / Generate packet / audit lookup / scroll) which bring the real total close to 5:00.**
 
 ---
 
-## 0:00–0:30 — Cold open: the problem
+## 0:00–0:25 — Cold open: the problem
 
-*[Screen: title card "Chargeback Shield" fades in over a static graphic — a card swipe, then a red "DISPUTED" stamp]*
+*[Screen: title card fades in over a card swipe, then a red "DISPUTED" stamp]*
 
-"A merchant doesn't lose a sale to fraud at checkout. Most of the time, they lose it two weeks later — when a customer disputes the charge, and the merchant has ten days to prove it was legitimate or eat the loss. That's a chargeback. And most merchants either fight blind, or don't fight at all.
+"A merchant doesn't lose money to fraud at checkout. They lose it two weeks later — when a customer disputes a legitimate charge, and the merchant has ten days to prove it or eat the loss. That's a chargeback. Most merchants fight blind, or don't fight at all."
 
-Track 02 asks for a fraud detection or automated-response system for one class of loss. We picked that one — the chargeback and dispute lifecycle — on purpose."
+## 0:25–1:05 — Positioning
 
-## 0:30–1:10 — Why this loss class, not generic fraud
+*[Screen: the two-stage Predict → Respond diagram]*
 
-*[Screen: ARCHITECTURE.md diagram — the two-stage Predict → Respond flow]*
+"Score-the-swipe, block-or-allow fraud detection is the obvious build for this track — and it's already a crowded lane. Chargeback Shield goes somewhere nobody else here is: the dispute itself. Before one's filed, we predict the risk, so a merchant can send a confirmation email or hold settlement, cheaply. After it's filed, we assemble exactly the evidence that reason code requires, and recommend fight, concede, or review — under a policy that's fixed and auditable, never a model's best guess."
 
-"Pre-authorization transaction fraud scoring is already a crowded lane in this buildathon — we checked the public repos before committing. So instead of scoring 'is this transaction fraudulent right now,' Chargeback Shield does two things nobody else in this track was doing together: it predicts which transactions are at elevated risk of a *future* dispute, before one is even filed — so a merchant can send a confirmation email or hold settlement for a few days, cheaply. And when a dispute *is* filed, it automatically assembles exactly the evidence that transaction's reason code requires, and recommends fight, concede, or review — under a fixed, auditable policy."
+## 1:05–2:35 — Live demo
 
-## 1:10–2:40 — Live demo
+*[Screen: dashboard at localhost, walk top to bottom]*
 
-*[Screen: dashboard at localhost, walk through top to bottom]*
+"Here's the live dashboard. [Point to KPI tiles] These are the model's held-out test metrics, regenerated fresh every run — not hand-picked. At our chosen threshold, the model catches about 40% of disputes at 40% precision. [Point to baseline row] The single most obvious rule you could write by hand only gets 24% recall at 26% precision — a real lift, not a black box we're asking you to trust on faith.
 
-"Here's the live dashboard. [Point to hero/KPI tiles] These are the model's held-out test metrics, regenerated fresh every run -- not hand-picked. At our chosen threshold, the model catches about 40% of disputes at 40% precision. [Point to baseline row] The naive one-line rule -- flag digital goods with no delivery confirmation -- only gets 24% recall at 26% precision. A real improvement over the obvious guess, not a black box we're asking you to trust.
+[Point to tradeoff table] Here's the full precision-recall curve, not one cherry-picked number — because 40% precision was a business call: the action on a flagged transaction is a cheap email, not a decline, so recall was worth more than precision here. A stricter threshold is one line away if that action ever gets costlier. The model card even shows what happens if you optimize purely for cost instead: it flags almost everyone — exactly why we didn't ship it.
 
-[Point to tradeoff table] And here's the full precision/recall curve, not one cherry-picked number — because a 40% precision floor was a *business* choice: the action on a flagged transaction is a cheap email, not a decline, so it's worth trading precision for recall. A stricter threshold is one line away if the action ever gets more expensive.
+[Score a transaction] Let's score one live. [Click Score] It comes back with a risk band and the top three factors that actually moved this prediction, in plain English — no black box.
 
-[Score a sample transaction] Let's score a transaction live. [Click 'Score'] It comes back with a risk band, and — this is new this week — the top three factors that actually moved *this* prediction, in plain English, computed by swapping each feature for its typical value and measuring the shift. No black box.
+[Generate packet] Now say it's disputed. [Click Generate packet] The evidence engine pulls exactly what the reason code needs and recommends fight, concede, or review. No LLM anywhere in that decision — only in one optional sentence of prose at the bottom, and if that call ever fails, the packet still works without it.
 
-[Switch to evidence packet demo] Now say this transaction gets disputed. [Click 'Generate packet'] The evidence engine pulls exactly what that reason code needs, scores how complete the packet is, and recommends fight, concede, or review. Notice there's no LLM anywhere in that decision — it's a fixed policy over real evidence completeness. The only place we *optionally* use an LLM is drafting the human-readable narrative paragraph at the bottom — never the decision itself, and if that call fails for any reason, the packet still works with every field filled, just without the paragraph.
+[Click an audit ID] Every decision — score or packet — lands in an append-only audit log the second it happens. Pull any of them back up by ID.
 
-[Click an audit ID] Every one of those decisions — score or packet — is written to an append-only audit log the moment it happens. You can pull any past decision back up by ID.
+[Scroll to merchant rollup] One more section: which merchants are chronically high-risk, ranked by dispute rate — kept deliberately separate from the feature the model actually trains on, which only ever sees history up to that point in time."
 
-[Scroll to merchant rollup] One more section: which merchants are chronically high-risk, ranked by dispute rate — kept deliberately separate from the leakage-safe feature the model itself trains on, which only ever sees history up to that point in time."
-
-## 2:40–3:20 — Why we trust our own numbers
+## 2:35–3:15 — Why trust the numbers
 
 *[Screen: model_card.md scrolling]*
 
-"Everything you just saw is trained on 100% synthetic data — we say that everywhere, starting with the README, because we're not going to pretend a few hours of buildathon time produced real cardholder patterns. What we can stand behind is the *methodology*: a held-out test set that never touched hyperparameter tuning, a documented reason for every correlate in the synthetic data, and a model card that's honest about *why* recall improved -- mostly a business threshold decision and a clearly-labeled merchant-risk signal, not a smarter model dressed up as one. It even reports a second, cost-based threshold, and says plainly it would flag almost everyone -- exactly why we didn't ship it. We'd rather show the real breakdown than round up."
+"Everything here trains on 100% synthetic data — stated plainly, starting with the README, because a few hours of buildathon time doesn't produce real cardholder patterns. What we stand behind is the method: a held-out test set untouched by tuning, a documented reason behind every signal built into the data, and a model card that says plainly why recall improved — mostly a business threshold and a clearly-labeled new signal, not a smarter model in disguise. We'd rather hand you the real breakdown than round up."
 
-## 3:20–4:10 — Engineering rigor
+## 3:15–3:55 — Engineering rigor
 
-*[Screen: GitHub repo — Actions tab with green checks, then test file list]*
+*[Screen: GitHub Actions tab, green checks, then the test file list]*
 
-"Under the hood: 23 tests covering the evidence engine, audit log, model, API, and narrative layer, running in CI on every push. The evidence engine never fabricates evidence -- if a document isn't in the store, the packet says so, and the completeness score reflects it. The audit trail is append-only JSONL, so nothing about a past decision can be quietly edited. And it's one FastAPI service with a dependency-free dashboard -- no build step, no external framework, so it runs the same way in a live demo as it does in your terminal."
+"Under the hood: 23 tests across the evidence engine, audit log, model, API, and narrative layer, running in CI on every push. The evidence engine never invents evidence — a missing document shows up as missing, and the completeness score reflects it. The audit trail is append-only, so no past decision can be quietly edited. And it's one FastAPI service with a dependency-free dashboard — no build step, so it runs the same live as it does in your terminal."
 
-## 4:10–4:45 — What's next
+## 3:55–4:30 — What's next
 
 *[Screen: README "known limitations" section]*
 
-"We're upfront about the gaps too: synthetic data can't capture real adversarial adaptation, and the evidence-retrieval step is still simulated — a real deployment would call Razorpay's own transaction, delivery, and support-ticket systems of record instead, without touching the decision policy itself. That's the next integration point, not a research problem."
+"The honest gaps: synthetic data can't capture real adversarial adaptation, and evidence retrieval is still simulated — a real deployment calls Razorpay's own systems of record there, without touching the policy itself. That's an integration, not a research problem."
 
-## 4:45–5:00 — Close
+## 4:30–5:00 — Close
 
 *[Screen: title card again, GitHub URL on screen]*
 
-"Chargeback Shield: predict the dispute before it happens, and respond to it honestly when it does — with a policy you can audit, not a model you have to trust. Thanks."
+"Chargeback Shield: predict the dispute before it happens, and respond to it honestly when it does — a policy you can audit, not a model you have to trust. Thanks."
 
 ---
-
-**Word count (spoken lines only): ~850 words → ~5:05-5:15 at a measured pace (~160-165 wpm), before demo-click pauses.**
 
 **Recording checklist:**
 - [ ] Start the local server (`uvicorn src.api:app --reload`) and pre-load one sample dispute before recording, so the packet demo doesn't stall on a slow synthetic lookup.
 - [ ] Rerun `python -m scripts.train`, `python -m scripts.evaluate_packets`, and `python -m scripts.merchant_rollup` right before recording so every number on screen matches what you say.
 - [ ] Zoom the browser to ~110% so dashboard text is legible in a screen recording.
-- [ ] Practice the 1:10–2:40 demo block separately — it's the longest and most click-dependent segment.
+- [ ] Practice the 1:05–2:35 demo block separately — it's the longest and most click-dependent segment.
 - [ ] Have a fallback: if a live dispute-packet lookup is ever slow, cut to a pre-generated one rather than let dead air run.
+- [ ] If you've deployed by recording time, swap the localhost URL for the live one and mention it once near the top.

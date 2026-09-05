@@ -27,6 +27,9 @@ COPY conftest.py pytest.ini ./
 # needed for this step. Writes reports/model.joblib, metrics.json,
 # model_card.md, feature_baselines.json, thresholds.json,
 # merchant_rollup.json, and packet_metrics.json into the image.
+# Set LOKY_MAX_CPU_COUNT=1 to prevent joblib/loky CPU core auto-detection
+# failures in sandboxed container build environments (e.g. Render).
+ENV LOKY_MAX_CPU_COUNT=1
 RUN python -m scripts.train && python -m scripts.evaluate_packets && python -m scripts.merchant_rollup
 
 # Never bake secrets into the image -- the optional Gemini narrative layer
